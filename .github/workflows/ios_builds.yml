@@ -1,4 +1,4 @@
-name: 🍏 iOS Builds
+name: iOS builds
 on:
   workflow_call:
 
@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: recursive
 
@@ -46,27 +46,27 @@ jobs:
     needs: build-macos          # waits for BOTH matrix legs to finish
     steps:
       - name: Download demo (device)
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: godot-orchestrator-demo-ios-release
+          name: ${{ github.event.repository.name }}-demo-ios-release
           path: demo-device
 
       - name: Download demo (simulator)
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: godot-orchestrator-demo-ios-simulator-release
+          name: ${{ github.event.repository.name }}-demo-ios-simulator-release
           path: demo-sim
 
       - name: Download plugin (device)
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: godot-orchestrator-plugin-ios-release
+          name: ${{ github.event.repository.name }}-plugin-ios-release
           path: plugin-device
 
       - name: Download plugin (simulator)
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: godot-orchestrator-plugin-ios-simulator-release
+          name: ${{ github.event.repository.name }}-plugin-ios-simulator-release
           path: plugin-sim
 
       - name: Build combined trees
@@ -91,27 +91,27 @@ jobs:
           done
 
       - name: Delete intermediate simulator artifacts
-        uses: geekyeggo/delete-artifact@v6
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6
         with:
           name: |
-            godot-orchestrator-demo-ios-simulator-release
-            godot-orchestrator-demo-ios-release
-            godot-orchestrator-plugin-ios-simulator-release
-            godot-orchestrator-plugin-ios-release
+            ${{ github.event.repository.name }}-demo-ios-simulator-release
+            ${{ github.event.repository.name }}-demo-ios-release
+            ${{ github.event.repository.name }}-plugin-ios-simulator-release
+            ${{ github.event.repository.name }}-plugin-ios-release
           failOnError: false
 
       - name: Upload combined demo
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: godot-orchestrator-demo-ios-release
+          name: ${{ github.event.repository.name }}-demo-ios-release
           overwrite: true
           path: demo-combined
           retention-days: 1
 
       - name: Upload combined plugin
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: godot-orchestrator-plugin-ios-release
+          name: ${{ github.event.repository.name }}-plugin-ios-release
           overwrite: true
           path: plugin-combined
           retention-days: 1

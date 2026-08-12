@@ -14,10 +14,10 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Orchestrator GDExtension"
+config/name="redotchestrator demo"
 run/main_scene="res://scenes/world_3d/world_3d.tscn"
-config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+config/features=PackedStringArray("4.5", "Forward Plus")
+config/icon="res://addons/orchestrator/icons/Redotchestrator_Logo.svg"
 
 [doc_classes]
 

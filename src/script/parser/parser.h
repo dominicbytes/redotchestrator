@@ -298,7 +298,6 @@ private:
     SuiteNode* pop_suite();
 
     static bool register_annotation(const MethodInfo& p_info, uint32_t p_target_kinds, AnnotationAction p_apply, const Vector<Variant>& p_default_arguments = Vector<Variant>(), bool p_is_vararg = false);
-
     void clear();
 
     void push_error(const String& p_message, const Node* p_origin = nullptr);

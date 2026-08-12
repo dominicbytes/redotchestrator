@@ -141,7 +141,7 @@ pin_data = Array[Dictionary]([{
 
 [resource]
 base_type = &"Node"
-description = "Base template for Node with default Godot cycle methods."
+description = "Base template for Node with default Redot lifecycle methods."
 functions = Array[OScriptFunction]([SubResource("OScriptFunction_orolp"), SubResource("OScriptFunction_llupj")])
 connections = Array[int]([0, 0, 2, 0, 3, 0, 5, 0])
 nodes = Array[OScriptNode]([SubResource("OScriptNodeEvent_10o0e"), SubResource("OScriptNodeComment_bh8nx"), SubResource("OScriptNodePrintString_6176b"), SubResource("OScriptNodeEvent_x2lyn"), SubResource("OScriptNodeComment_sra6w"), SubResource("OScriptNodePrintString_ec6h4")])

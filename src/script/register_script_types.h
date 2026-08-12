@@ -21,6 +21,7 @@ void unregister_script_types();
 
 void register_script_extension();
 void unregister_script_extension();
+void initialize_script_extension();
 
 void register_script_resource_formats();
 void unregister_script_resource_formats();

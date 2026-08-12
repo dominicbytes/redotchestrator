@@ -17,7 +17,7 @@
     {
       "name": "default-editor",
       "hidden": true,
-      "description": "Defines default values for doing GodotCPP editor builds",
+      "description": "Defines default values for redot-cpp editor builds",
       "cacheVariables": {
         "GODOTCPP_TARGET": "editor"
       }
@@ -25,7 +25,7 @@
     {
       "name": "default-release",
       "hidden": true,
-      "description": "Defines default values for doing GodotCPP template_release builds",
+      "description": "Defines default values for redot-cpp template_release builds",
       "cacheVariables": {
         "GODOTCPP_TARGET": "template_release"
       }
@@ -41,12 +41,12 @@
     {
       "name": "linux-release",
       "inherits": ["default-release", "linux-default"],
-      "description": "Builds Orchestrator for Linux using template_release."
+      "description": "Builds redotchestrator for Linux using template_release."
     },
     {
       "name": "linux-editor",
       "inherits": ["default-editor", "linux-default"],
-      "description": "Builds Orchestrator for Linux using editor."
+      "description": "Builds redotchestrator for Linux using editor."
     },
     {
       "name": "windows-default",
@@ -62,12 +62,12 @@
     {
       "name": "windows-release",
       "inherits": ["default-release", "windows-default"],
-      "description": "Builds Orchestrator for Windows using template_release."
+      "description": "Builds redotchestrator for Windows using template_release."
     },
     {
       "name": "windows-editor",
       "inherits": ["default-editor", "windows-default"],
-      "description": "Builds Orchestrator for Windows using editor."
+      "description": "Builds redotchestrator for Windows using editor."
     },
     {
       "name": "macos-default",
@@ -82,12 +82,12 @@
     {
       "name": "macos-release",
       "inherits": ["default-release", "macos-default"],
-      "description": "Builds Orchestrator for macOS using template_release."
+      "description": "Builds redotchestrator for macOS using template_release."
     },
     {
       "name": "macos-editor",
       "inherits": ["default-editor", "macos-default"],
-      "description": "Builds Orchestrator for macOS using editor."
+      "description": "Builds redotchestrator for macOS using editor."
     },
     {
       "name": "ios-default",
@@ -104,12 +104,12 @@
     {
       "name": "ios-release",
       "inherits": ["default-release", "ios-default"],
-      "description": "Builds Orchestrator for iOS using template_release."
+      "description": "Builds redotchestrator for iOS using template_release."
     },
     {
       "name": "ios-simulator-release",
       "inherits": ["default-release", "ios-default"],
-      "description": "Builds Orchestrator for the iOS simulator (arm64).",
+      "description": "Builds redotchestrator for the iOS simulator (arm64).",
       "cacheVariables": {
         "PLATFORM": "SIMULATORARM64"
       }
@@ -117,7 +117,7 @@
     {
       "name": "ios-editor",
       "inherits": ["default-editor", "ios-default"],
-      "description": "Builds Orchestrator for iOS using editor."
+      "description": "Builds redotchestrator for iOS using editor."
     },
     {
       "name": "android-default",
@@ -134,7 +134,7 @@
     {
       "name": "android-arm64-editor",
       "inherits": ["default-editor", "android-default"],
-      "description": "Builds Orchestrator for Android arm64 using editor.",
+      "description": "Builds redotchestrator for Android arm64 using editor.",
       "cacheVariables": {
         "CMAKE_ANDROID_ARCH_ABI": "arm64-v8a",
         "ANDROID_ABI": "arm64-v8a"
@@ -143,7 +143,7 @@
     {
       "name": "android-arm64-release",
       "inherits": ["default-release", "android-default"],
-      "description": "Builds Orchestrator for Android arm64 using template_release.",
+      "description": "Builds redotchestrator for Android arm64 using template_release.",
       "cacheVariables": {
         "CMAKE_ANDROID_ARCH_ABI": "arm64-v8a",
         "ANDROID_ABI": "arm64-v8a"
@@ -152,7 +152,7 @@
     {
       "name": "android-arm32-editor",
       "inherits": ["default-editor", "android-default"],
-      "description": "Builds Orchestrator for Android arm32 using editor.",
+      "description": "Builds redotchestrator for Android arm32 using editor.",
       "cacheVariables": {
         "CMAKE_ANDROID_ARCH_ABI": "armeabi-v7a",
         "ANDROID_ABI": "armeabi-v7a"
@@ -161,7 +161,7 @@
     {
       "name": "android-arm32-release",
       "inherits": ["default-release", "android-default"],
-      "description": "Builds Orchestrator for Android arm32 using template_release.",
+      "description": "Builds redotchestrator for Android arm32 using template_release.",
       "cacheVariables": {
         "CMAKE_ANDROID_ARCH_ABI": "armeabi-v7a",
         "ANDROID_ABI": "armeabi-v7a"
@@ -183,7 +183,7 @@
     {
       "name": "web-nothreads-release",
       "inherits": ["default-release", "web-default"],
-      "description": "Builds Orchestrator for WebAssembly using template_release and no threads.",
+      "description": "Builds redotchestrator for WebAssembly using template_release and no threads.",
       "cacheVariables": {
         "GODOTCPP_THREADS": "FALSE"
       }
@@ -191,7 +191,7 @@
     {
       "name": "web-threads-release",
       "inherits": ["default-release", "web-default"],
-      "description": "Builds Orchestrator for WebAssembly using template_release and threads.",
+      "description": "Builds redotchestrator for WebAssembly using template_release and threads.",
       "cacheVariables": {
         "GODOTCPP_THREADS": "TRUE",
         "CMAKE_SHARED_LINKER_FLAGS": "-s SIDE_MODULE=1 -s USE_PTHREADS=1"

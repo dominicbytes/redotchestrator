@@ -22,6 +22,7 @@ SET(GDEXTENSION_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/project/addons/orchestrato
 # Configurable options
 OPTION(AUTOFORMAT_SRC_ON_CONFIGURE "If enabled, clang-format will be used to format all sources in /src during configuration" OFF)
 OPTION(USE_CCACHE "Use ccache as compiler launcher if available" ON)
+OPTION(REDOTCHESTRATOR_BUILD_TESTS "Build Redotchestrator native security tests" OFF)
 
 # Set basic CMAKE properties
 SET(CMAKE_CXX_STANDARD 20)
@@ -41,7 +42,7 @@ IF (GIT_FOUND)
             OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     EXECUTE_PROCESS(
-            COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+            COMMAND ${GIT_EXECUTABLE} -c "safe.directory=${CMAKE_CURRENT_SOURCE_DIR}/extern/godot-cpp" rev-parse HEAD
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/extern/godot-cpp"
             OUTPUT_VARIABLE GODOT_CPP_GIT_COMMIT_HASH
             OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -94,7 +95,7 @@ IF (WIN32)
     SET(win32_product_name "${RESOLVED_VERSION_NAME}")
     SET(win32_file_version "${PROJECT_VERSION_MAJOR},${PROJECT_VERSION_MINOR},${PROJECT_VERSION_PATCH},0")
     SET(win32_product_version "${PROJECT_VERSION_MAJOR},${PROJECT_VERSION_MINOR},${PROJECT_VERSION_PATCH},0")
-    SET(win32_file_description "Godot ${win32_product_name} Plug-in")
+    SET(win32_file_description "Redot ${win32_product_name} Plugin")
     CONFIGURE_FILE(cmake/templates/windows.rc.in ${CMAKE_CURRENT_BINARY_DIR}/_generated/version.rc @ONLY)
 ENDIF ()
 
@@ -132,10 +133,20 @@ FILE(GLOB_RECURSE gdext_sources
 # GDExtension library
 ADD_LIBRARY(${PROJECT_NAME} SHARED ${gdext_sources})
 
+# The VM dispatch function contains many mutually exclusive opcode-local objects.
+# With MSVC exception unwinding enabled, those lifetimes are not overlaid and the
+# function receives a roughly 100 KiB native stack frame, making ordinary script
+# recursion exhaust the host stack. Godot-style code does not use C++ exceptions,
+# so disable unwind semantics for this translation unit only.
+IF (MSVC)
+    STRING(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    SET_SOURCE_FILES_PROPERTIES(src/script/script_vm.cpp PROPERTIES
+            COMPILE_OPTIONS "/EHs-c-")
+ENDIF ()
+
 # Setup compiler options for GDExtension Library based on the compiler used
 TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PUBLIC
         $<${compiler_is_msvc}:
-            /EHsc
             /utf-8
             /Zc:preprocessor
             /wd5054 # operator '|' deprecated between enumerations of different types
@@ -260,6 +271,20 @@ IF (EMSCRIPTEN)
     SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES SUFFIX ".wasm")
     SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${ORCHESTRATOR_WEB_OUTPUT_NAME}")
 ENDIF()
+
+IF (REDOTCHESTRATOR_BUILD_TESTS)
+    ENABLE_TESTING()
+    ADD_EXECUTABLE(redotchestrator_update_security_tests
+            tests/native/update_security_tests.cpp)
+    TARGET_COMPILE_FEATURES(redotchestrator_update_security_tests PRIVATE cxx_std_20)
+    TARGET_INCLUDE_DIRECTORIES(redotchestrator_update_security_tests PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    IF (MSVC)
+        TARGET_COMPILE_OPTIONS(redotchestrator_update_security_tests PRIVATE /EHsc)
+    ENDIF ()
+    ADD_TEST(NAME redotchestrator_update_security
+            COMMAND redotchestrator_update_security_tests)
+ENDIF ()
 
 INCLUDE(cmake-utils)
 

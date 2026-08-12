@@ -65,7 +65,7 @@ OrchestratorGettingStarted::OrchestratorGettingStarted() {
     add_child(logo);
 
     _plugin_version = memnew(Label);
-    _plugin_version->set_text(vformat("Godot %s - %s", VERSION_NAME, VERSION_FULL_BUILD));
+    _plugin_version->set_text(vformat("Redot %s - %s", VERSION_NAME, VERSION_FULL_BUILD));
     _plugin_version->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
     add_child(_plugin_version);
 

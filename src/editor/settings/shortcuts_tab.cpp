@@ -28,6 +28,8 @@
 #include <godot_cpp/classes/label.hpp>
 #include <godot_cpp/classes/margin_container.hpp>
 
+#include <limits>
+
 void OrchestratorEditorEventSearchBar::_event_changed(const Ref<InputEvent>& p_event) {
     if (p_event.is_valid() && (!p_event->is_pressed() || p_event->is_echo())) {
         return;
@@ -261,7 +263,8 @@ Variant OrchestratorEditorSettingsShortcutsTab::get_drag_data_fw(const Point2& p
 
 bool OrchestratorEditorSettingsShortcutsTab::can_drop_data_fw(const Point2& p_point, const Variant& p_data, Control* p_from) const {
     TreeItem* selected = _shortcuts->get_selected();
-    TreeItem* item = (p_point == Vector2(Math_INF, Math_INF)) ? _shortcuts->get_selected() : _shortcuts->get_item_at_position(p_point);
+    const real_t infinity = std::numeric_limits<real_t>::infinity();
+    TreeItem* item = (p_point == Vector2(infinity, infinity)) ? _shortcuts->get_selected() : _shortcuts->get_item_at_position(p_point);
     if (!selected || !item || item == selected || String(item->get_meta("type", "")) != "event") {
         return false;
     }
@@ -280,7 +283,8 @@ void OrchestratorEditorSettingsShortcutsTab::drop_data_fw(const Point2& p_point,
     }
 
     TreeItem* selected = _shortcuts->get_selected();
-    TreeItem* target = (p_point == Vector2(Math_INF, Math_INF)) ? _shortcuts->get_selected() : _shortcuts->get_item_at_position(p_point);
+    const real_t infinity = std::numeric_limits<real_t>::infinity();
+    TreeItem* target = (p_point == Vector2(infinity, infinity)) ? _shortcuts->get_selected() : _shortcuts->get_item_at_position(p_point);
     if (!target) {
         return;
     }

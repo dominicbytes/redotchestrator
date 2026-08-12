@@ -579,6 +579,7 @@ Variant OScriptCompiledFunction::call(OScriptInstance* p_instance, const Variant
     Variant retvalue;
     Variant* stack = nullptr;
     Variant** instruction_args = nullptr;
+    Vector<uint8_t> heap_stack;
     int defarg = 0;
 
     uint32_t alloca_size = 0;
@@ -624,7 +625,18 @@ Variant OScriptCompiledFunction::call(OScriptInstance* p_instance, const Variant
         const size_t vsize = sizeof(Variant*);
         alloca_size = vsize * FIXED_ADDRESSES_MAX + vsize * instruction_arg_size + sizeof(Variant) * stack_size;
 
-        uint8_t* aptr = static_cast<uint8_t*>(alloca(alloca_size));
+        // Keep the VM's contribution to the native call stack bounded. A deeply nested
+        // script call can otherwise exhaust a platform's main-thread stack before the
+        // language-level recursion guard is reached (notably on Windows).
+        constexpr uint32_t MAX_SAFE_ALLOCA_SIZE = 16 * 1024;
+        constexpr int MAX_SAFE_ALLOCA_DEPTH = 16;
+        uint8_t* aptr = nullptr;
+        if (alloca_size > MAX_SAFE_ALLOCA_SIZE || call_depth > MAX_SAFE_ALLOCA_DEPTH) {
+            heap_stack.resize(alloca_size);
+            aptr = heap_stack.ptrw();
+        } else {
+            aptr = static_cast<uint8_t*>(alloca(alloca_size));
+        }
         memset(aptr, 0, alloca_size);
         stack = reinterpret_cast<Variant*>(aptr);
 

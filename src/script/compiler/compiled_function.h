@@ -390,7 +390,14 @@ private:
     Variant get_default_variant_for_data_type(const OScriptDataType& p_type);
 
 public:
-    static constexpr int MAX_CALL_DEPTH = 2048; // Limit to avoid crash because of stack overflow
+    // MSVC reserves a substantially larger native frame for the opcode dispatcher
+    // than Clang/GCC. Keep the language guard below the Windows host-stack limit;
+    // this still permits the upstream depth-100 recursion compatibility fixture.
+    #if defined(_MSC_VER)
+    static constexpr int MAX_CALL_DEPTH = 112;
+    #else
+    static constexpr int MAX_CALL_DEPTH = 2048;
+    #endif
 
     struct CallState {
         Signal completed;

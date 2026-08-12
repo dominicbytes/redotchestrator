@@ -72,18 +72,23 @@ struct OrchestratorVersion {
     String to_string() const;
 };
 
-/// A manifest record for outlining Godot and Orchestrator compatibility
+/// A manifest record for outlining Redot compatibility and release asset integrity.
 struct OrchestratorReleaseManifest {
-    String name;                //! Orchestrator release names
-    String godot_compatibility; //! Godot's compatibility expectations
-    String blog_url;            //! An optional blog url
+    String name;                  //! Redotchestrator release name
+    String redot_compatibility;   //! Redot's compatibility expectation
+    String asset_name;            //! Exact GitHub release asset name
+    String sha256;                //! Expected SHA-256 digest
+    int64_t asset_size{ 0 };      //! Expected asset size in bytes
+    String blog_url;              //! An optional blog URL
 };
 
 /// Represents a release that is available for download
 struct OrchestratorRelease {
     String tag;                 //! The release tag
     String release_url;         //! Link to the HTML releases page on GitHub
+    String plugin_asset_name;   //! The plugin asset file name
     String plugin_asset_url;    //! The plugin asset download URL
+    String plugin_asset_digest; //! GitHub-computed SHA-256 digest
     String body;                //! The release notes
     bool draft;                 //! Whether release is draft
     bool prerelease;            //! Whether release is a pre-release
@@ -118,7 +123,7 @@ class OrchestratorUpdaterVersionPicker : public ConfirmationDialog {
 
     struct ReleaseItem {
         OrchestratorRelease release;
-        String godot_compatibility;
+        OrchestratorReleaseManifest manifest;
         String blog_url;
     };
 
@@ -131,6 +136,9 @@ class OrchestratorUpdaterVersionPicker : public ConfirmationDialog {
     HTTPRequest* _download = nullptr;
     OptionButton* _release_filter = nullptr;
     CheckBox* _notify_any_release = nullptr;
+    String _expected_sha256;
+    String _expected_tag;
+    int64_t _expected_asset_size = 0;
 
 protected:
     static void _bind_methods();
@@ -140,7 +148,7 @@ protected:
     //~ End Wrapped Interface
 
     void _set_button_enable_state(bool p_enabled);
-    void _check_godot_compatibility();
+    void _check_redot_compatibility();
     void _request_download();
     void _handle_custom_action(const StringName& p_action);
     void _download_completed(int p_status, int p_code, const PackedStringArray& p_headers, const PackedByteArray& p_data);
@@ -150,6 +158,7 @@ protected:
     void _filter_changed(int p_index);
     void _update_tree(bool p_stable_only = false);
     void _update_notify_settings();
+    void _show_failure(const String& p_message);
 
 public:
     /// Updates the tree
@@ -160,9 +169,9 @@ public:
 
     /// Add a release to the picker
     /// @param p_release the release
-    /// @param p_godot_compatibility the release's Godot compatibility
+    /// @param p_manifest the controlled compatibility and integrity manifest
     /// @param p_blog_url optional blog url, will default to GitHub release page if empty
-    void add_release(const OrchestratorRelease& p_release, const String& p_godot_compatibility, const String& p_blog_url = String());
+    void add_release(const OrchestratorRelease& p_release, const OrchestratorReleaseManifest& p_manifest, const String& p_blog_url = String());
 
     OrchestratorUpdaterVersionPicker();
 };

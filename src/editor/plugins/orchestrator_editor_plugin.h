@@ -122,7 +122,7 @@ public:
     static OrchestratorPlugin* get_singleton() { return _plugin; }
 
     static String get_github_issues_url();
-    static String get_patreon_url();
+    static String get_support_url();
     static String get_community_url();
     static String get_plugin_online_documentation_url();
 

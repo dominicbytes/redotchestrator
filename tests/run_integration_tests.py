@@ -1,9 +1,9 @@
 """
-Run the Orchestrator integration tests against Godot.
+Run the redotchestrator integration tests against an explicit Redot binary.
 
-Downloads (or reuses) the appropriate Godot build, copies the addon into the test
-project, imports the project, then runs every scene under scenes/ and compares its
-output against the matching .out file.
+Copies the addon into the test project, imports the project, then runs every scene
+under scenes/ and compares its output against the matching .out file. The runner
+never downloads an engine: callers must provide the exact Redot build under test.
 
 Usage:
     python3 run_integration_tests.py [options]
@@ -13,8 +13,8 @@ Options:
                           SUBSTR. Handy for iterating on a single failing test.
     --no-color            Disable colored output (also auto-disabled when stdout is
                           not a TTY, e.g. in CI logs).
-    --version X.Y         Godot version to test against. Overrides the
-                          compatibility_minimum read from the .gdextension file.
+    --version X.Y         Compatibility API version used for fixture selection.
+    --redot-binary PATH   Exact Redot executable to test (or set REDOT_BIN).
     -j, --jobs N          Number of scenes to run in parallel. Defaults to the CPU
                           count, capped at 4; use -j 1 to force sequential runs.
     -h, --help            Show the argparse-generated help and exit.
@@ -24,7 +24,6 @@ hits an unknown directive.
 """
 
 import argparse
-import json
 import os
 import time
 import re
@@ -32,12 +31,13 @@ import shutil
 import signal
 import subprocess
 import sys
-import urllib.request
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 MAX_JOBS = 4
+IMPORT_TIMEOUT_SECONDS = 120
+SCENE_TIMEOUT_SECONDS = 30
 
 scenes_dir = (Path(__file__).parent / "scenes").resolve()
 
@@ -88,6 +88,13 @@ def truncate(text, max_lines=30):
     omitted = len(lines) - max_lines
     return "\n".join(lines[-max_lines:] + [f"... {omitted} more line(s) omitted"])
 
+def process_output(value):
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
+
 def parse_version(v):
     return tuple(int(x) for x in v.split(".")[:2])
 
@@ -133,7 +140,15 @@ def strip_backtrace(text):
     ).strip()
 
 def normalize_cpp_lines(text):
-    return re.sub(r'(\w+\.cpp):\d+', r'\1', text)
+    text = text.replace("\\", "/")
+    # MSVC diagnostics include the absolute checkout path and the owning C++
+    # class, while GCC/Clang use the repository-relative file and bare method.
+    # Preserve the source file and method while removing those toolchain-only
+    # presentation differences.
+    text = re.sub(r'\([^()\n]*?/(src/[^():\n]+\.cpp)(?::\d+)?\)', r'(\1)', text)
+    text = re.sub(r'(\w+\.cpp):\d+', r'\1', text)
+    text = re.sub(r'(?m)^(\s*at: )(?:[A-Za-z_]\w*::)+([~A-Za-z_]\w*)( \()', r'\1\2\3', text)
+    return text
 
 def validate_output(source, result, elapsed):
     source = source.resolve()
@@ -184,17 +199,30 @@ def clean_godot_cache():
         shutil.rmtree(godot_cache)
 
 def import_project():
-    result = subprocess.run(
-        [
-            godot_path,
-            "--no-header",
-            "--headless",
-            "--path",
-            Path(__file__).parent,
-            "--import",
-            "--quiet"],
-        capture_output=True,
-        text=True)
+    try:
+        result = subprocess.run(
+            [
+                redot_path,
+                "--no-header",
+                "--headless",
+                "--path",
+                Path(__file__).parent,
+                "--import",
+                "--quiet"],
+            capture_output=True,
+            text=True,
+            timeout=IMPORT_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired as error:
+        print(f"Project import timed out after {IMPORT_TIMEOUT_SECONDS} seconds.", file=sys.stderr)
+        stdout = process_output(error.stdout).strip()
+        stderr = process_output(error.stderr).strip()
+        if stdout:
+            print("---------- stdout ----------", file=sys.stderr)
+            print(stdout, file=sys.stderr)
+        if stderr:
+            print("---------- stderr ----------", file=sys.stderr)
+            print(stderr, file=sys.stderr)
+        sys.exit(1)
 
     if result.returncode != 0:
         # A segfault surfaces as a negative return code (e.g. -11 for SIGSEGV).
@@ -224,7 +252,7 @@ def run_scene(scene_file):
     if "fixed_fps" in meta:
         frame_args += ["--fixed-fps", meta["fixed_fps"]]
 
-    # Number of main-loop iterations before Godot force-quits.
+    # Number of main-loop iterations before Redot force-quits.
     # Defaults to 2.
     # Physics scenes typically pair this with fixed_fps and quit_after: 1 to capture a single deterministic frame.
     frame_args += ["--quit-after", meta.get("quit_after", "2")]
@@ -233,7 +261,7 @@ def run_scene(scene_file):
     try:
         result = subprocess.run(
             [
-                godot_path,
+                redot_path,
                 "--no-header",
                 "--headless",
                 "--path",
@@ -243,7 +271,19 @@ def run_scene(scene_file):
                 str(scene_file)],
             capture_output=True,
             check=True,
-            text=True)
+            text=True,
+            timeout=SCENE_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired as error:
+        elapsed = time.monotonic() - start
+        text = format_result("CRASH", elapsed, scene_file)
+        text += f"\n  timed out after {SCENE_TIMEOUT_SECONDS} seconds"
+        stdout = process_output(error.stdout).strip()
+        stderr = process_output(error.stderr).strip()
+        if stdout:
+            text += "\n" + truncate(stdout)
+        if stderr:
+            text += "\n" + truncate(stderr)
+        return "CRASH", text + "\n"
     except subprocess.CalledProcessError as e:
         elapsed = time.monotonic() - start
         text = format_result("CRASH", elapsed, scene_file)
@@ -300,60 +340,9 @@ def get_minimum_godot_version():
         raise RuntimeError("Could not find compatibility_minimum in .gdextension file")
     return match.group(1)
 
-def find_latest_godot_release(major_minor):
-    page = 1
-    while True:
-        url = f"https://api.github.com/repos/godotengine/godot-builds/releases?per_page=100&page={page}"
-        req = urllib.request.Request(url, headers={"User-Agent": "godot-test-runner"})
-        with urllib.request.urlopen(req) as r:
-            releases = json.load(r)
-
-        if not releases:
-            break
-
-        for release in releases:
-            tag = release["tag_name"]  # e.g. "4.7-dev3", "4.6.2-rc2"
-            if tag.startswith(f"{major_minor}-") or tag.startswith(f"{major_minor}."):
-                for asset in release["assets"]:
-                    asset_name = asset["name"]
-                    if asset_name.endswith("linux.x86_64.zip"):
-                        return release, tag, asset
-
-        page += 1
-
-    raise RuntimeError(f"No release found for Godot {major_minor}")
-
-def download_godot(version):
-    # Adjust the filename pattern to match platform
-
-    Path("bin").mkdir(parents=True, exist_ok=True)
-
-    release, tag, asset = find_latest_godot_release(version)
-    filename = f"bin/Godot_v{tag}_linux.x86_64"
-
-    url = asset["browser_download_url"]
-
-    zip_path = Path(__file__).parent / f"{filename}.zip"
-    godot_path = Path(__file__).parent / filename
-
-    if godot_path.exists():
-        print(f"Godot {version} already exists, skipping download.")
-        return godot_path
-
-    print(f"Downloading Godot {version} from {url}...")
-    urllib.request.urlretrieve(url, zip_path)
-
-    import zipfile
-    with zipfile.ZipFile(zip_path, "r") as z:
-        z.extractall(Path(__file__).parent / "bin")
-    zip_path.unlink()
-
-    godot_path.chmod(0o755)  # make executable
-    return godot_path
-
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Run Orchestrator integration tests against Godot.")
+        description="Run redotchestrator integration tests against Redot.")
     parser.add_argument(
         "-k", "--filter", dest="filter", default=None,
         help="Only run scenes whose path (relative to scenes/) contains this substring.")
@@ -362,11 +351,12 @@ def parse_args():
         help="Disable colored output.")
     parser.add_argument(
         "--version", dest="version", default=None,
-        help="Godot version to test against (overrides the .gdextension minimum).")
+        help="Compatibility API version for fixture selection "
+             "(defaults to the .gdextension minimum).")
     parser.add_argument(
-        "--godot-binary", dest="godot_binary", default=None,
-        help="Path to a specific Godot binary to use, bypassing the download "
-             "(also settable via the GODOT_BINARY environment variable).")
+        "--redot-binary", dest="redot_binary", default=None,
+        help="Path to the exact Redot binary under test "
+             "(also settable via REDOT_BIN).")
     default_jobs = min(os.cpu_count() or 1, MAX_JOBS)
     parser.add_argument(
         "-j", "--jobs", type=int, default=default_jobs,
@@ -375,22 +365,24 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    global version, godot_path, use_color
+    global version, redot_path, use_color
 
     args = parse_args()
     use_color = sys.stdout.isatty() and not args.no_color
 
-    binary = args.godot_binary or os.environ.get("GODOT_BINARY")
-    if binary:
-        godot_path = Path(binary).expanduser()
-        if not godot_path.exists():
-            print(f"Godot binary not found: {godot_path}", file=sys.stderr)
-            sys.exit(1)
-        version = args.version or get_minimum_godot_version()
-        print(f"Using Godot binary {godot_path}")
-    else:
-        version = args.version or get_minimum_godot_version()
-        godot_path = download_godot(version)
+    binary = args.redot_binary or os.environ.get("REDOT_BIN")
+    if not binary:
+        print("Redot binary required: pass --redot-binary or set REDOT_BIN.",
+              file=sys.stderr)
+        sys.exit(2)
+
+    redot_path = Path(binary).expanduser().resolve()
+    if not redot_path.is_file():
+        print(f"Redot binary not found: {redot_path}", file=sys.stderr)
+        sys.exit(1)
+
+    version = args.version or get_minimum_godot_version()
+    print(f"Using Redot binary {redot_path}")
 
     update_libraries()
     clean_godot_cache()

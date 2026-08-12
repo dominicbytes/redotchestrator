@@ -252,7 +252,7 @@ OScriptInstance* OScript::_create_instance(const Variant** p_args, int p_arg_cou
     si->set_instance_info(GDEXTENSION_SCRIPT_INSTANCE_CREATE(&OScriptInstance::INSTANCE_INFO, si));
     #if GODOT_VERSION >= 0x040500
     // GH-1663 Allows for calling script-level functions during `_init`.
-    GDE_INTERFACE(object_set_script_instance)(p_owner->_owner, si->get_instance_info());
+    gdextension_object_set_script_instance(p_owner->_owner, si->get_instance_info());
     #endif
     {
         MutexLock lock(*OScriptLanguage::get_singleton()->lock.ptr());
@@ -656,7 +656,7 @@ void* OScript::_placeholder_instance_create(Object* p_object) const {
     psi->set_instance_info(GDEXTENSION_SCRIPT_INSTANCE_CREATE(&OScriptPlaceHolderInstance::INSTANCE_INFO, psi));
     #if GODOT_VERSION >= 0x040500
     // GH-1663 Allows for calling script-level functions during `_init`.
-    GDE_INTERFACE(object_set_script_instance)(p_object->_owner, psi->get_instance_info());
+    gdextension_object_set_script_instance(p_object->_owner, psi->get_instance_info());
     #endif
     {
         MutexLock lock(*_language->lock.ptr());
@@ -1476,7 +1476,7 @@ String OScript::dump_compiled_state() {
     result += vformat("Script File Time : %s\n", Time::get_singleton()->get_datetime_string_from_unix_time(FileAccess::get_modified_time(path)));
     result += vformat("OScript Version  : %s\n", VERSION_FULL_BUILD);
     result += vformat("Compiled At      : %s\n", Time::get_singleton()->get_datetime_string_from_system());
-    result += vformat("Godot Version    : %d.%d.%d.%s\n", GODOT_VERSION_MAJOR, GODOT_VERSION_MINOR, GODOT_VERSION_PATCH, GODOT_VERSION_STATUS);
+    result += vformat("GDExtension API  : %d.%d.%d.%s\n", GODOT_VERSION_MAJOR, GODOT_VERSION_MINOR, GODOT_VERSION_PATCH, GODOT_VERSION_STATUS);
     result += "=======================================================================\n";
     result += "\n";
 

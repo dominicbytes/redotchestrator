@@ -1,83 +1,101 @@
-![screen-shot](https://static.cratercrash.space/orchestrator/images/banners/orchestrator_banner.png)
+# redotchestrator
 
-![Godot v4.7](https://img.shields.io/badge/Godot-v4.7-%23478cbf?logo=godot-engine&logoColor=white&style=flat-square)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/CraterCrash/godot-orchestrator?&style=flat-square)
-[![LICENSE](https://img.shields.io/badge/license-Apache--2.0-blue?logo=apache)](https://github.com/CraterCrash/godot-orchestrator/blob/main/LICENSE)
+`redotchestrator` is an unofficial Redot 26.2 port of Crater Crash Studios'
+[Orchestrator](https://github.com/CraterCrash/godot-orchestrator) visual-scripting
+plugin. This fork starts from the latest stable upstream release, `v2.5.stable`,
+and preserves its graph, resource, runtime, debugger, dialogue, and editor
+workflows while replacing the Godot 4.7 integration with Redot 26.2 bindings.
 
-# Godot Orchestrator
+## Status
 
-Orchestrator is the ultimate visual scripting solution designed for the Godot 4.2+ platform.  
+The source port is implemented and locally validated on Windows against the
+official Redot 26.2 editor and release template. The repository is ready to be
+forked and to run its all-platform GitHub Actions matrix. A tagged release is
+created only after Linux, macOS, Windows, Android, Web, and iOS artifacts have
+all been assembled into one strictly validated package.
 
-It revolutionizes Godot game development with its intuitive graph editor interface and hundreds of nodes to build any game logic.
-This add-on empowers you to craft complex behaviors and intricate game logic with unparalleled ease and flexibility, just as you would find in other commercially available game engines.
+| Item | Locked value or result |
+|---|---|
+| Upstream baseline | `v2.5.stable` / `775cc4549657199b385f0a16e4c5523aba8b5500` |
+| Redot baseline | `redot-26.2-stable` / `4f5b14abade2239104847d03d8f9056e4467cfcd` |
+| redot-cpp baseline | `598ec78e86b2c240a023f6de13daba70f7de8610` |
+| GDExtension compatibility minimum | `4.5.2` |
+| Windows integration suite | 42 passed, 0 failed, 0 crashed, 0 errored |
+| Native updater-security suite | Passed |
+| Windows release/export smoke | Passed; exported process exited 0 |
 
-Whether you are an experienced Godot veteran or an aspiring developer eager to get started with game development, Orchestrator is a must-have plug-in for any Godot project.
+The initial public posting still needs confirmation that the selected name may
+use the Redot trademark. The project does not include the Redot logo and does
+not claim affiliation or endorsement. See [BLOCKERS.md](BLOCKERS.md).
 
-The following screenshots only scratch the surface of what the plug-in offers out of the box, with much more in future builds.
+## Install
 
-![screen-shot](https://static.cratercrash.space/orchestrator/images/screenshots/screenshot_a.png)
+For an end-user installation, use a release ZIP produced by this repository's
+tag workflow. Extract it into a Redot 26.2 project so the descriptor is at:
 
-![screen-shot](https://static.cratercrash.space/orchestrator/images/screenshots/screenshot_b.png)
+```text
+res://addons/orchestrator/orchestrator.gdextension
+```
 
-![screen-shot](https://static.cratercrash.space/orchestrator/images/screenshots/screenshot_c.png)
+The release ZIP deliberately retains `addons/orchestrator`, `OScript`, `.os`,
+`.torch`, and the `orchestrator/` settings namespace. Those are compatibility
+identifiers used by existing resources; the public product name is
+`redotchestrator`.
 
-![screen-shot](https://static.cratercrash.space/orchestrator/images/screenshots/screenshot_d.png)
+Do not substitute binaries from the upstream Godot release. They target Godot
+4.7 and are not Redot 26.2 builds.
 
-## ![icon](https://static.cratercrash.space/orchestrator/images/icons/orchestrator_menu_image_20px.png?width=auto&height=20)  Godot Compatibility
+## Build from source
 
-Orchestrator is made using Godot GDExtension technology, which has certain ABI (application binary interface) requirements that must be followed to guarantee that the integration between extensions and the engine works as expected.
-The following table describes which Orchestrator version you should use based on your Godot editor version.
+Clone with submodules, then use the preset for the intended target. CMake 3.20+
+and a C++20 compiler are required.
 
-| Godot Version | Orchestrator Version   | Development Status                    |
-|---------------|------------------------|---------------------------------------|
-| Godot 4.7.x   | v2.5.x (`main` branch) | Active Development                    |
-| Godot 4.6.x   | v2.4.x (`2.4` branch)  | Bug fixes and Compatible New Features |
-| Godot 4.5.x   | v2.3.x (`2.3` branch)  | Bug fixes only                        |
-| Godot 4.4.x   | v2.2.x (`2.2` branch)  | Bug fixes only                        |
+```powershell
+git clone --recurse-submodules https://github.com/dominicbytes/redotchestrator.git
+cd redotchestrator
+cmake --preset windows-editor
+cmake --build build/windows-editor --target orchestrator --parallel 4
+```
 
-**Using the wrong version of Orchestrator with the Godot editor may result in unexpected behavior or crashes.**
-**Additionally, if your Godot version is not listed, it should be assumed the plug-in is not yet 100% compatible.**
+Run Windows commands from an x64 Visual Studio developer prompt. Equivalent
+presets exist for Linux, macOS, Android, Web, and iOS. The immutable engine and
+binding revisions are recorded in [UPSTREAM_LOCK.md](UPSTREAM_LOCK.md).
 
-The following Godot versions are no longer supported:
+## Verify
 
-| Godot Version | Last Orchestrator Release                 |
-|---------------|-------------------------------------------|
-| Godot 4.2.x   | 2.0.8.stable (`2.0` branch) on 2026-02-22 |
-| Godot 4.3.x   | 2.1.6.stable (`2.1` branch) on 2026-02-22 |
+Set `REDOT_BIN` to the exact Redot 26.2 editor, then run the integration suite:
 
-## ![icon](https://static.cratercrash.space/orchestrator/images/icons/orchestrator_menu_image_20px.png?width=auto&height=20) Features
+```powershell
+python tests/run_integration_tests.py --redot-binary "$env:REDOT_BIN" --no-color
+```
 
-* A complete visual scripting solution for Godot.
-* Compatible with Godot 4.4+ using Godot GDExtension plug-in technology.
-* Attach an Orchestration Script (OScript) to any Godot scene node just like GDScript or CSharp.
-* Hundreds of nodes in dozens of categories such as Flow Control, Logic, Math, Variables, and more. 
-* Drag-and-drop Editor integration for Scene Nodes, Properties, and Resources.
-* Build reusable code with custom functions.
-* Supports sending and reacting to Godot signals.
-* Design complex dialogue conversations for NPCs for any game.
-* Work with any Godot engine data type, including complex types like Arrays or Dictionaries.
+The test runner never downloads or falls back to Godot. It bounds both import
+and per-scene execution. Native updater checks are enabled with
+`REDOTCHESTRATOR_BUILD_TESTS=ON`, and deterministic release-package checks live
+in `tests/test_package_release.py`.
 
-## ![icon](https://static.cratercrash.space/orchestrator/images/icons/orchestrator_menu_image_20px.png?width=auto&height=20) Documentation
+## Updates and releases
 
-For complete documentation, see https://docs.cratercrash.space/orchestrator.
+The editor updater accepts only assets from
+`dominicbytes/redotchestrator` whose tag, filename, size, GitHub-provided digest,
+and controlled manifest SHA-256 all agree. ZIP entries must remain under
+`addons/orchestrator`; unsafe, duplicate, ambiguous, or oversized paths are
+rejected. Installation uses a staging directory, backup, atomic directory
+activation, and rollback on activation failure.
 
-## ![icon](https://static.cratercrash.space/orchestrator/images/icons/orchestrator_menu_image_20px.png?width=auto&height=20) Changelog
+Release tags must match `VERSION` (currently `v2.5.stable`). The release script
+builds a deterministic `redotchestrator-v2.5.stable-plugin.zip`, verifies every
+library referenced by the descriptor, rejects development artifacts and removed
+artwork, and emits the manifest consumed by the updater.
 
-See [CHANGELOG](https://github.com/CraterCrash/godot-orchestrator/blob/main/CHANGELOG.md).
+## Provenance and license
 
-## ![icon](https://static.cratercrash.space/orchestrator/images/icons/orchestrator_menu_image_20px.png?width=auto&height=20) Licenses
+The upstream source remains Apache-2.0 with its original authorship preserved.
+Downstream changes and original artwork are Copyright 2026 Dominic Bytes and
+licensed under Apache-2.0. See [MODIFICATIONS.md](MODIFICATIONS.md),
+[ASSET_LICENSES.md](ASSET_LICENSES.md), [AUTHORS.md](AUTHORS.md), and
+[LICENSE](LICENSE).
 
-- Source code: [Apache-2.0 License](/LICENSE)
-- Godot logo: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
-- Orchestrator logo: [&copy; 2023-present Crater Crash Studios, LLC. All Rights Reserved](https://www.cratercrash.com/legal/webcn)
-
-## ![icon](https://static.cratercrash.space/orchestrator/images/icons/orchestrator_menu_image_20px.png?width=auto&height=20) Community
-
-- [Discord](https://discord.gg/wYQpvuYDhT)
-- [Mastodon](https://cratercrash.social/@orchestrator)
-
-## ![icon](https://static.cratercrash.space/orchestrator/images/icons/orchestrator_menu_image_20px.png?width=auto&height=20) Contributors
-
-<a href="https://github.com/CraterCrash/godot-orchestrator/graphs/contributors">
-  <img src="https://contributors-img.web.app/image?repo=CraterCrash/godot-orchestrator" />
-</a>
+`redotchestrator` is not affiliated with, sponsored by, or endorsed by the
+Redot Engine project or Crater Crash Studios LLC. Apache-2.0 does not grant
+trademark rights.

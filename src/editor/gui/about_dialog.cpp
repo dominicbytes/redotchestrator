@@ -117,12 +117,12 @@ ScrollContainer* OrchestratorAboutDialog::_populate_list(const String &p_name, c
     }
 
     if (p_donor) {
-        _patreon_btn = memnew(LinkButton);
-        _patreon_btn->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
-        _patreon_btn->set_text("Donote and become a supporter today!");
-        _patreon_btn->set_focus_mode(Control::FOCUS_NONE);
-        _patreon_btn->set_underline_mode(LinkButton::UNDERLINE_MODE_ON_HOVER);
-        vbc->add_child(_patreon_btn);
+        _support_btn = memnew(LinkButton);
+        _support_btn->set_h_size_flags(Control::SIZE_SHRINK_CENTER);
+        _support_btn->set_text("Support this project on GitHub");
+        _support_btn->set_focus_mode(Control::FOCUS_NONE);
+        _support_btn->set_underline_mode(LinkButton::UNDERLINE_MODE_ON_HOVER);
+        vbc->add_child(_support_btn);
     }
 
     return sc;
@@ -169,8 +169,8 @@ void OrchestratorAboutDialog::_version_pressed() {
     DisplayServer::get_singleton()->clipboard_set(_version_btn->get_meta("text_to_copy"));
 }
 
-void OrchestratorAboutDialog::_patreon_pressed() {
-    OS::get_singleton()->shell_open(OrchestratorPlugin::get_patreon_url());
+void OrchestratorAboutDialog::_support_pressed() {
+    OS::get_singleton()->shell_open(OrchestratorPlugin::get_support_url());
 }
 
 void OrchestratorAboutDialog::_website_selected(int p_id, ItemList* p_list) {
@@ -223,7 +223,8 @@ void OrchestratorAboutDialog::_notification(int p_what) {
 
             Label* about_text = memnew(Label);
             about_text->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
-            about_text->set_text(String::utf8("\xc2\xa9 2023-present ") + ("Crater Crash Studios, LLC and it's contributors."));
+            about_text->set_text(String::utf8("\xc2\xa9 2023-present Crater Crash Studios LLC and its contributors.\n"
+                                               "\xc2\xa9 2026 Dominic Bytes."));
             version_info_vbc->add_child(about_text);
 
             hbc->add_child(version_info_vbc);
@@ -262,7 +263,7 @@ void OrchestratorAboutDialog::_notification(int p_what) {
             tc->add_child(_license_text);
 
             _version_btn->connect(SceneStringName(pressed), callable_mp_this(_version_pressed));
-            _patreon_btn->connect(SceneStringName(pressed), callable_mp_this(_patreon_pressed));
+            _support_btn->connect(SceneStringName(pressed), callable_mp_this(_support_pressed));
             break;
         }
         case NOTIFICATION_THEME_CHANGED: {
@@ -280,6 +281,6 @@ void OrchestratorAboutDialog::_bind_methods() {
 }
 
 OrchestratorAboutDialog::OrchestratorAboutDialog() {
-    set_title("About Godot Orchestrator");
+    set_title("About " VERSION_NAME);
     set_hide_on_ok(true);
 }

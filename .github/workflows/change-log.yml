@@ -12,11 +12,11 @@ on:
 
 jobs:
   script:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Full history + tags so changelog-generator can diff base-ref..head-ref
           # without deepening the clone (which triggers "shallow file has changed").
@@ -25,7 +25,7 @@ jobs:
 
       - name: Generate changes
         id: changelog
-        uses: metcalfc/changelog-generator@v4.7.0
+        uses: metcalfc/changelog-generator@0440d0932f9a0dd1cc9ecd8412830761351323bd # v4.7.0
         with:
           myToken: ${{ secrets.GITHUB_TOKEN }}
           head-ref: ${{ github.event.inputs.target_sha }}

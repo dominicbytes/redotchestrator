@@ -10,9 +10,9 @@ config_version=5
 
 [application]
 
-config/name="Orchestrator GDExtension Tests"
-config/features=PackedStringArray("4.7", "Forward Plus")
-config/icon="res://icon.svg"
+config/name="redotchestrator integration tests"
+config/features=PackedStringArray("4.5", "Forward Plus")
+config/icon="res://addons/orchestrator/icons/Redotchestrator_Logo.svg"
 
 [orchestrator]
 

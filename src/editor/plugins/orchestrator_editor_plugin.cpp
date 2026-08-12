@@ -286,12 +286,12 @@ String OrchestratorPlugin::_get_plugin_name() const {
 
 Ref<Texture2D> OrchestratorPlugin::_get_plugin_icon() const {
     #if GODOT_VERSION >= 0x040500
-    Ref<FileAccess> file = FileAccess::open("res://addons/orchestrator/icons/Orchestrator_Logo_16x16.svg", FileAccess::READ);
+    Ref<FileAccess> file = FileAccess::open("res://addons/orchestrator/icons/Redotchestrator_Logo_16x16.svg", FileAccess::READ);
     if (file.is_valid()) {
         return DPITexture::create_from_string(file->get_as_text(), EDSCALE);
     }
     #endif
-    return ResourceLoader::get_singleton()->load("res://addons/orchestrator/icons/Orchestrator_Logo_16x16.svg");
+    return ResourceLoader::get_singleton()->load("res://addons/orchestrator/icons/Redotchestrator_Logo_16x16.svg");
 }
 
 void OrchestratorPlugin::_save_external_data() {
@@ -414,15 +414,15 @@ PackedStringArray OrchestratorPlugin::_get_breakpoints() const {
 }
 
 String OrchestratorPlugin::get_github_issues_url() {
-    return "https://github.com/CraterCrash/godot-orchestrator/issues/new/choose";
+    return "https://github.com/dominicbytes/redotchestrator/issues/new/choose";
 }
 
-String OrchestratorPlugin::get_patreon_url() {
-    return "https://donate.cratercrash.space/";
+String OrchestratorPlugin::get_support_url() {
+    return "https://github.com/dominicbytes/redotchestrator";
 }
 
 String OrchestratorPlugin::get_community_url() {
-    return "https://discord.cratercrash.space/";
+    return "https://github.com/dominicbytes/redotchestrator/discussions";
 }
 
 String OrchestratorPlugin::get_plugin_online_documentation_url() {
@@ -452,7 +452,7 @@ void OrchestratorPlugin::request_editor_restart() {
 }
 
 Ref<Texture2D> OrchestratorPlugin::get_plugin_icon_hires() const {
-    return ResourceLoader::get_singleton()->load("res://addons/orchestrator/icons/Orchestrator_Logo.svg");
+    return ResourceLoader::get_singleton()->load("res://addons/orchestrator/icons/Redotchestrator_Logo.svg");
 }
 
 Ref<ConfigFile> OrchestratorPlugin::get_metadata() {
@@ -482,7 +482,7 @@ void OrchestratorPlugin::_notification(int p_what) {
             _register_shortcuts();
 
             _window_wrapper = memnew(OrchestratorWindowWrapper);
-            _window_wrapper->set_window_title(vformat("Orchestrator - Godot Engine"));
+            _window_wrapper->set_window_title(vformat("%s - Redot Engine", VERSION_NAME));
             _window_wrapper->set_margins_enabled(true);
             _window_wrapper->set_v_size_flags(Control::SIZE_EXPAND_FILL);
             _window_wrapper->hide();
@@ -508,6 +508,10 @@ void OrchestratorPlugin::_notification(int p_what) {
             break;
         }
         case NOTIFICATION_READY: {
+            if (DisplayServer::get_singleton()->get_name() == "headless") {
+                break;
+            }
+
             if (_is_plugin_just_installed()) {
                 // When a GDExtension is first installed or loaded, there is a known bug that causes
                 // an issue with initialization of the ScriptLanguage, see

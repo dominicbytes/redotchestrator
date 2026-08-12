@@ -1,4 +1,4 @@
-name: 🪟 Windows Builds
+name: Windows builds
 on:
   workflow_call:
 
@@ -23,12 +23,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: recursive
 
       - name: Install CMake (Windows)
-        uses: lukka/get-cmake@v4.3.4
+        uses: lukka/get-cmake@f5b8fbb4d77cec1acc5a5f9f0df4beffaf5d98d9 # v4.3.4
 
       - name: Install Ninja (Windows)
         shell: powershell
@@ -37,7 +37,7 @@ jobs:
           choco install ccache
           choco upgrade ccache ninja
       # This forces the use of MSVC rather than GCC
-      - uses: TheMrMilchmann/setup-msvc-dev@v4
+      - uses: TheMrMilchmann/setup-msvc-dev@368ef7d1ee4d1171b31d4a7f67f4d954f903f5a9 # v4.1.0
         with:
           arch: x64
 
