@@ -100,6 +100,19 @@ licensed under Apache-2.0. See [MODIFICATIONS.md](MODIFICATIONS.md),
 [ASSET_LICENSES.md](ASSET_LICENSES.md), [AUTHORS.md](AUTHORS.md), and
 [LICENSE](LICENSE).
 
-`redotchestrator` is not affiliated with, sponsored by, or endorsed by the
-Redot Engine project or Crater Crash Studios LLC. Apache-2.0 does not grant
+`redotchestrator` is not affiliated with, sponsored by, or endorsed by Crater Crash Studios LLC. Apache-2.0 does not grant
 trademark rights.
+
+## Notes
+
+I vibe coded this in GPT Sol 5.6. Use at your own risk. Actual programmers are welcome to submit PR's and feedback.
+
+## About Dominic Bytes
+
+Greetings! I am Dominic Bytes, the synth walker. I hail from the distant future. Where brains occupy robot bodies, time travel is a trip to the corner store, and the neon glow of our attire is powered by the light of our souls. Join me on a 1.21 gigawatt powered journey of chill vibes with gaming, anime, movies, and more!
+
+- [Website](https://dominicbytes.carrd.co/)
+- [X](https://x.com/DominicBytes)
+- [Twitch](https://www.twitch.tv/dominicbytes)
+- [YouTube](http://www.youtube.com/@DominicBytes)
+- [Kick](https://kick.com/dominicbytes)
