@@ -19,10 +19,15 @@
 # Godot Engine submodule update/init
 # =======================================================================
 
+# The engine source is only useful for optional IDE browsing and debug-engine
+# work. Normal extension builds use the API bundled with redot-cpp and must not
+# download or require a separate engine checkout.
+OPTION(ORCHESTRATOR_INIT_ENGINE_SOURCE "Initialize the Redot engine source submodule" OFF)
+
 # Confirms that the Godot Engine source files exist.
 # Assumes that if they don't, the submodule has not yet been initialized.
 
-IF ( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/godot-engine/core" )
+IF ( ORCHESTRATOR_INIT_ENGINE_SOURCE AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/godot-engine/core" )
     MESSAGE( NOTICE "Godot engine sources not found" )
     MESSAGE( NOTICE "initializing/updating the engine submodule..." )
 
@@ -82,12 +87,14 @@ SET( godot_debug_editor_executable
      "${CMAKE_CURRENT_SOURCE_DIR}/extern/godot-engine/bin/godot.${host_os_engine}.editor.dev.${cpu_arch}${CMAKE_EXECUTABLE_SUFFIX}"
 )
 
-FIND_PROGRAM( SCONS_PROGRAM NAMES scons )
-IF ( NOT EXISTS "${SCONS_PROGRAM}" )
-    MESSAGE( FATAL_ERROR
-             "scons not found, it is required for the godot engine build. "
-             "Please install scons and confirm it is in your system PATH."
-    )
+IF ( ORCHESTRATOR_INIT_ENGINE_SOURCE )
+    FIND_PROGRAM( SCONS_PROGRAM NAMES scons )
+    IF ( NOT EXISTS "${SCONS_PROGRAM}" )
+        MESSAGE( FATAL_ERROR
+                 "scons not found, it is required for the Redot engine build. "
+                 "Please install scons and confirm it is in your system PATH."
+        )
+    ENDIF ()
 ENDIF ()
 
 #MESSAGE( NOTICE "godot_debug_editor_executable = ${godot_debug_editor_executable}" )

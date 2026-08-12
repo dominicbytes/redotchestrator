@@ -362,7 +362,7 @@ void OrchestratorEditorIntrospector::_get_actions_for_class(const String& p_clas
                     .selectable(true)
                     .method(method)
                     .class_name(p_class_name)
-                    .tooltip(vformat("Creates an event callback '%s', called automatically by Godot's object lifecycle.", method.name))
+                    .tooltip(vformat("Creates an event callback '%s', called automatically by Redot's object lifecycle.", method.name))
                     .build());
             } else {
 
@@ -1054,7 +1054,7 @@ void OrchestratorEditorIntrospector::generate_actions_from_builtin_functions(Act
                 method.name,
                 DictionaryUtils::from_method(method))
             .method(method)
-            .tooltip(vformat("Calls the specified built-in Godot function '%s'.", method.name))
+            .tooltip(vformat("Calls the specified built-in Redot function '%s'.", method.name))
             .build());
     }
 }

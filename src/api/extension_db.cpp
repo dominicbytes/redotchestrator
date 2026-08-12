@@ -23,6 +23,8 @@
 #include <godot_cpp/classes/json.hpp>
 #include <godot_cpp/classes/xml_parser.hpp>
 
+#include <limits>
+
 #define REGISTER_MATH_CONSTANT(m_name, m_type, m_value) {           \
         math_constants[m_name] = { m_name, m_type, m_value };       \
         math_constant_names.push_back(m_name);                      \
@@ -259,8 +261,8 @@ void ExtensionDB::_load(const PackedByteArray& p_data) {
     REGISTER_MATH_CONSTANT("E", Variant::FLOAT, Math_E);
     REGISTER_MATH_CONSTANT("Sqrt1/2", Variant::FLOAT, Math_SQRT12);
     REGISTER_MATH_CONSTANT("Sqrt2", Variant::FLOAT, Math_SQRT2);
-    REGISTER_MATH_CONSTANT("INF", Variant::FLOAT, Math_INF);
-    REGISTER_MATH_CONSTANT("NAN", Variant::FLOAT, Math_NAN);
+    REGISTER_MATH_CONSTANT("INF", Variant::FLOAT, std::numeric_limits<double>::infinity());
+    REGISTER_MATH_CONSTANT("NAN", Variant::FLOAT, std::numeric_limits<double>::quiet_NaN());
 
     _load_builtin_types(api_data);
     _load_global_enumerations(api_data);

@@ -763,7 +763,7 @@ Error OrchestrationBinaryParser::_load() {
         #if GODOT_VERSION >= 0x040700
         Ref<MissingResource> missing_resource;
         #else
-        MissingResource* missing_resource;
+        MissingResource* missing_resource = nullptr;
         #endif
         if (resource.is_null()) {
 

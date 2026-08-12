@@ -49,6 +49,7 @@ namespace orchestrator {
         if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
             register_orchestration_editor_types();
             register_editor_types();
+            initialize_script_extension();
         }
     }
 
@@ -59,10 +60,10 @@ namespace orchestrator {
         }
         if (p_level == MODULE_INITIALIZATION_LEVEL_SCENE) {
             unregister_orchestration_node_types();
+            unregister_script_resource_formats();
             unregister_script_extension();
         }
         if (p_level == MODULE_INITIALIZATION_LEVEL_SERVERS) {
-            unregister_script_resource_formats();
             unregister_script_types();
             unregister_orchestration_types();
             destroy_core_singletons();

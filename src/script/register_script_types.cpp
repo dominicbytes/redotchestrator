@@ -67,7 +67,17 @@ void register_script_extension() {
 void unregister_script_extension() {
     OScriptLanguage* language = OScriptLanguage::get_singleton();
     if (language) {
+        if (language->is_initialized()) {
+            language->_finish();
+        }
         Engine::get_singleton()->unregister_script_language(language);
+    }
+}
+
+void initialize_script_extension() {
+    OScriptLanguage* language = OScriptLanguage::get_singleton();
+    if (language) {
+        language->_init();
     }
 }
 

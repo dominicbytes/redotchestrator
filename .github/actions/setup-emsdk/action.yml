@@ -18,8 +18,12 @@ runs:
     - name: Download Emscripten
       shell: sh
       run: |
+        set -eu
         mkdir -p '${{ inputs.install-path }}'
-        git clone https://github.com/emscripten-core/emsdk.git "${{ inputs.install-path }}"
+        git -C '${{ inputs.install-path }}' init
+        git -C '${{ inputs.install-path }}' remote add origin https://github.com/emscripten-core/emsdk.git
+        git -C '${{ inputs.install-path }}' fetch --depth=1 origin d49219d03a41cd12f95a33ba84273c20d41fd350
+        git -C '${{ inputs.install-path }}' checkout --detach FETCH_HEAD
 
     - name: Install and Activate
       shell: sh

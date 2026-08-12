@@ -18,6 +18,7 @@
 
 #include "common/version.h"
 
+#include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/godot.hpp>
 
 /// In Godot 4.6, the GDExtension API namespace changed from 'godot::internal' with all methods prefixed with
@@ -28,6 +29,24 @@
 #else
 #define GDE_INTERFACE(m_func) ::godot::internal::gdextension_interface_##m_func
 #endif
+
+inline void gdextension_object_set_script_instance(
+    GDExtensionObjectPtr p_object,
+    GDExtensionScriptInstanceDataPtr p_script_instance) {
+    static const auto object_set_script_instance = (GDExtensionInterfaceObjectSetScriptInstance)
+        godot::internal::gdextension_interface_get_proc_address("object_set_script_instance");
+    ERR_FAIL_NULL_MSG(object_set_script_instance, "Redot does not expose object_set_script_instance().");
+    object_set_script_instance(p_object, p_script_instance);
+}
+
+inline GDExtensionScriptInstanceDataPtr gdextension_object_get_script_instance(
+    GDExtensionConstObjectPtr p_object,
+    GDExtensionObjectPtr p_language) {
+    static const auto object_get_script_instance = (GDExtensionInterfaceObjectGetScriptInstance)
+        godot::internal::gdextension_interface_get_proc_address("object_get_script_instance");
+    ERR_FAIL_NULL_V_MSG(object_get_script_instance, nullptr, "Redot does not expose object_get_script_instance().");
+    return object_get_script_instance(p_object, p_language);
+}
 
 // Utility helper for migration from std::vector to LocalVector use cases
 template <typename T>

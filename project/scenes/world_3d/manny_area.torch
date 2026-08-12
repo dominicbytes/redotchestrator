@@ -50,7 +50,7 @@ method = {
 }
 user_defined = true
 id = 44
-description = "Immediately closes the demo by making a call to [method SceneTree.quit], which closes Godot."
+description = "Immediately closes the demo by making a call to [method SceneTree.quit], which closes Redot."
 
 [obj type="OScriptFunction" id="OScriptFunction_0vhnn"]
 guid = "F0CC2314-5ACB-4476-8233-83AA27051F56"

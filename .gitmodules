@@ -1,8 +1,6 @@
 [submodule "engine"]
 	path = extern/godot-engine
-	url = https://github.com/godotengine/godot.git
-	branch = master
+	url = https://github.com/Redot-Engine/redot-engine.git
 [submodule "godot-cpp"]
 	path = extern/godot-cpp
-	url = https://github.com/godotengine/godot-cpp
-	branch = master
+	url = https://github.com/Redot-Engine/redot-cpp.git

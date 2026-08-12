@@ -31,7 +31,7 @@ class OrchestratorAboutDialog : public AcceptDialog {
     GDCLASS(OrchestratorAboutDialog, AcceptDialog);
 
     LinkButton* _version_btn = nullptr;
-    LinkButton* _patreon_btn = nullptr;
+    LinkButton* _support_btn = nullptr;
     RichTextLabel* _license_text = nullptr;
     TextureRect* _logo = nullptr;
     bool _theme_changing = false;
@@ -43,7 +43,7 @@ class OrchestratorAboutDialog : public AcceptDialog {
     //~ Signal Handlers
     void _theme_changed();
     void _version_pressed();
-    void _patreon_pressed();
+    void _support_pressed();
     void _website_selected(int p_id, ItemList* p_list);
     void _item_list_resized(ItemList* p_list);
     //~ End Signal Handlers

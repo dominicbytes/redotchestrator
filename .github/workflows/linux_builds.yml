@@ -1,4 +1,4 @@
-name: 🐧 Linux Builds
+name: Linux builds
 on:
   workflow_call:
 
@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: recursive
 
@@ -48,12 +48,47 @@ jobs:
           cache-name: ${{ matrix.cache-name }}
           preset-name: ${{ matrix.preset }}
 
+      - name: Run native updater security tests
+        if: matrix.artifact-name == 'linux-editor'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S "$GITHUB_WORKSPACE" -B "$GITHUB_WORKSPACE/build/linux-editor" \
+            -DREDOTCHESTRATOR_BUILD_TESTS=ON
+          cmake --build "$GITHUB_WORKSPACE/build/linux-editor" \
+            --target redotchestrator_update_security_tests -j 2
+          ctest --test-dir "$GITHUB_WORKSPACE/build/linux-editor" --output-on-failure
+
+      - name: Run release packaging tests
+        if: matrix.artifact-name == 'linux-editor'
+        shell: bash
+        run: python tests/test_package_release.py
+
+      - name: Install pinned Redot 26.2 test editor
+        if: matrix.artifact-name == 'linux-editor'
+        shell: bash
+        env:
+          REDOT_ARCHIVE_URL: https://github.com/Redot-Engine/redot-engine/releases/download/redot-26.2-stable/Redot_v26.2-stable_linux_x64.zip
+          REDOT_ARCHIVE_SHA256: f474d890806c41af15513cf5a8600243e241882e11b68dbb95660e3465b5b1e4
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/Redot_v26.2-stable_linux_x64.zip"
+          install_dir="$RUNNER_TEMP/redot-26.2"
+          mkdir -p "$install_dir"
+          curl --fail --location --retry 3 --proto '=https' --tlsv1.2 \
+            --output "$archive" "$REDOT_ARCHIVE_URL"
+          echo "$REDOT_ARCHIVE_SHA256  $archive" | sha256sum --check --strict -
+          unzip -q "$archive" -d "$install_dir"
+          chmod +x "$install_dir/redot.linuxbsd.editor.x86_64"
+          echo "REDOT_BIN=$install_dir/redot.linuxbsd.editor.x86_64" >> "$GITHUB_ENV"
+          "$install_dir/redot.linuxbsd.editor.x86_64" --version
+
       - name: Run integration tests
         if: matrix.artifact-name == 'linux-editor'
         shell: bash
         working-directory: ${{ github.workspace }}/tests
         run: |
-          python run_integration_tests.py --no-color
+          python run_integration_tests.py --redot-binary "$REDOT_BIN" --no-color
 
   build-linux-arm64:
     runs-on: ubuntu-22.04-arm
@@ -75,7 +110,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           submodules: recursive
 

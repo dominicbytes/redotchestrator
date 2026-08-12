@@ -1,5 +1,5 @@
-name: Build Orchestrator
-description: Builds orchestrator plug-in
+name: Build redotchestrator
+description: Builds the redotchestrator plugin
 
 inputs:
   artifact-name:
@@ -29,7 +29,7 @@ runs:
   steps:
 
     - name: Setup python 3.x
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         # Semantic version range syntax or exact version of a Python version
         python-version: ${{ inputs.python-version }}
@@ -53,7 +53,7 @@ runs:
     #   3. A partial match for the same cache name and default branch name
     - name: Restore cache
       id: restore-cache
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
       with:
         path: ${{ inputs.cache-path }}
         key: ${{ inputs.cache-name }}|${{ github.base_ref || github.ref_name }}|${{ github.sha }}
@@ -63,7 +63,7 @@ runs:
 
     # Installs ccache
     - name: Install ccache
-      uses: hendrikmuhs/ccache-action@v1.2.21
+      uses: hendrikmuhs/ccache-action@1bbbcda0748b3e340dee71a314fa68ffcbd6df79 # v1.2.21
       with:
         key: ${{ inputs.cache-name }}|${{ github.ref_name }}|${{ github.sha }}
         restore: false
@@ -102,7 +102,7 @@ runs:
 
     - name: Save cache
       if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       with:
         path: ${{ inputs.cache-path }}
         key: ${{ inputs.cache-name }}|${{ github.ref_name }}|${{ github.sha }}
@@ -116,25 +116,34 @@ runs:
         cp '${{ github.workspace }}/CHANGELOG.md' '${{ github.workspace }}/project/addons/orchestrator/'
         cp '${{ github.workspace }}/README.md' '${{ github.workspace }}/project/addons/orchestrator/'
         cp '${{ github.workspace }}/LICENSE' '${{ github.workspace }}/project/addons/orchestrator/'
+        cp '${{ github.workspace }}/MODIFICATIONS.md' '${{ github.workspace }}/project/addons/orchestrator/'
+        cp '${{ github.workspace }}/ASSET_LICENSES.md' '${{ github.workspace }}/project/addons/orchestrator/'
 
     # Creates a demo archive of this specific build, including only the "project" subfolder
     - name: Upload artifact (Demo)
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:
         name: ${{ github.event.repository.name }}-demo-${{ inputs.artifact-name }}
         retention-days: 1
-        path:
+        path: |
           ${{ github.workspace }}/project/
+          !${{ github.workspace }}/project/addons/orchestrator/*.exp
+          !${{ github.workspace }}/project/addons/orchestrator/*.ilk
+          !${{ github.workspace }}/project/addons/orchestrator/*.lib
+          !${{ github.workspace }}/project/addons/orchestrator/*.pdb
 
     # Creates the distribution plugin
     - name: Upload artifact (Plug-in)
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:
         name: ${{ github.event.repository.name }}-plugin-${{ inputs.artifact-name }}
         retention-days: 1
         path: |
           ${{ github.workspace }}/project
           !${{ github.workspace }}/project/addons/orchestrator/*debug*
+          !${{ github.workspace }}/project/addons/orchestrator/*.exp
+          !${{ github.workspace }}/project/addons/orchestrator/*.ilk
+          !${{ github.workspace }}/project/addons/orchestrator/*.lib
+          !${{ github.workspace }}/project/addons/orchestrator/*.pdb
           !${{ github.workspace }}/project/scenes
-          !${{ github.workspace }}/project/icon.svg
           !${{ github.workspace }}/project/project.godot

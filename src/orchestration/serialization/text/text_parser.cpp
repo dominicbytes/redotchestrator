@@ -368,7 +368,7 @@ Error OrchestrationTextParser::_load() {
         #if GODOT_VERSION >= 0x040700
         Ref<MissingResource> missing_resource;
         #else
-        MissingResource* missing_resource;
+        MissingResource* missing_resource = nullptr;
         #endif
 
         if (res.is_null()) {
@@ -493,7 +493,7 @@ Error OrchestrationTextParser::_load() {
         #if GODOT_VERSION >= 0x040700
 		Ref<MissingResource> missing_resource;
         #else
-        MissingResource* missing_resource;
+        MissingResource* missing_resource = nullptr;
         #endif
 
 		if (!_resource.is_valid()) {

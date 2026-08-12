@@ -1,11 +1,11 @@
-name: 🔗 GHA
+name: redotchestrator CI
 
 on:
   push:
     branches:
       - '**'
-    tags-ignore:
-      - '**'
+    tags:
+      - 'v*'
   pull_request:
   workflow_dispatch:
 
@@ -20,30 +20,82 @@ concurrency:
 jobs:
 
   android-build:
-    name: 🤖 Android
+    name: Android
     uses: ./.github/workflows/android_builds.yml
 
   linux-build:
-    name: 🐧 Linux
+    name: Linux
     uses: ./.github/workflows/linux_builds.yml
 
   macos-build:
-    name: 🍎 macOS
+    name: macOS
     uses: ./.github/workflows/macos_builds.yml
 
   ios-build:
-    name: 🍏 iOS
+    name: iOS
     uses: ./.github/workflows/ios_builds.yml
 
   windows-build:
-    name: 🪟 Windows
+    name: Windows
     uses: ./.github/workflows/windows_builds.yml
 
   web-build:
-    name: 🌐 Web
+    name: Web
     uses: ./.github/workflows/web_builds.yml
 
   artifacts-build:
-    name: 📎 Artifacts
+    name: Artifacts
     needs: [android-build, linux-build, macos-build, windows-build, web-build, ios-build]
     uses: ./.github/workflows/artifact_builds.yml
+
+  release:
+    name: Publish release
+    needs: artifacts-build
+    if: github.repository == 'dominicbytes/redotchestrator' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Download combined plugin
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ${{ github.event.repository.name }}-plugin
+          path: combined
+
+      - name: Build deterministic release package and manifest
+        shell: bash
+        env:
+          PREVIOUS_MANIFEST_URL: https://github.com/dominicbytes/redotchestrator/releases/latest/download/release_manifests.json
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if ! curl --fail --location --silent --show-error \
+            --output dist/release_manifests.json "$PREVIOUS_MANIFEST_URL"; then
+            cp release_manifests.json dist/release_manifests.json
+          fi
+          archive="dist/redotchestrator-${GITHUB_REF_NAME}-plugin.zip"
+          python tools/package_release.py combined "$archive" \
+            --version "$GITHUB_REF_NAME" \
+            --version-file VERSION \
+            --redot-compatibility v26.2.0 \
+            --manifest dist/release_manifests.json
+          sha256sum "$archive" dist/release_manifests.json
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/redotchestrator-${GITHUB_REF_NAME}-plugin.zip" \
+            "dist/release_manifests.json" \
+            --verify-tag \
+            --title "redotchestrator ${GITHUB_REF_NAME}" \
+            --generate-notes

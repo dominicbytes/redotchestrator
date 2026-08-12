@@ -3137,7 +3137,7 @@ OScriptParser::VariableNode* OScriptParser::build_variable(const Ref<OScriptVari
     variable->datatype_specifier = build_type(p_variable->get_info());
 
     if (p_variable->is_exported()) {
-        AnnotationNode* annotation = memnew(AnnotationNode);
+        AnnotationNode* annotation = alloc_node<AnnotationNode>();
         annotation->name = "@export";
         annotation->info = &valid_annotations[annotation->name];
 
@@ -3843,5 +3843,3 @@ OScriptParser::~OScriptParser() {
         memdelete(element);
     }
 }
-
-

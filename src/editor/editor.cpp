@@ -266,7 +266,7 @@ void OrchestratorEditor::_menu_option(int p_option) {
             break;
         }
         case HELP_SUPPORT: {
-            _open_in_browser(OrchestratorPlugin::get_patreon_url());
+            _open_in_browser(OrchestratorPlugin::get_support_url());
             break;
         }
         case HELP_ABOUT: {

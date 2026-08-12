@@ -22,6 +22,7 @@
 #include "common/settings.h"
 #include "common/string_utils.h"
 #include "core/godot/core_constants.h"
+#include "core/godot/gdextension_compat.h"
 #include "core/godot/variant/variant.h"
 #include "core/typedefs.h"
 #include "orchestration/nodes/print_string.h"
@@ -117,6 +118,13 @@ String OScriptLanguage::_get_name() const {
 }
 
 void OScriptLanguage::_init() {
+    // Redot 26.2 can load this GDExtension after its script-language initialization
+    // pass. The editor-level compatibility hook calls _init() directly in that case,
+    // so keep engine-driven initialization idempotent.
+    if (initialized) {
+        return;
+    }
+
     _template_registry = memnew(OScriptTemplateRegistry);
 
     _debug_max_call_stack = ORCHESTRATOR_GET("debug/settings/max_call_stack", 1024);
@@ -158,8 +166,17 @@ void OScriptLanguage::_init() {
     }
 
     // Populate singletons
-    for (const String& singleton_class : Engine::get_singleton()->get_singleton_list()) {
-        _add_global(singleton_class, Engine::get_singleton()->get_singleton(singleton_class));
+    Engine* engine = Engine::get_singleton();
+    for (const String& singleton_class : engine->get_singleton_list()) {
+        Object* singleton = engine->get_singleton(singleton_class);
+        _add_global(singleton_class, singleton);
+
+        // Engine::get_singleton(StringName) creates a godot-cpp instance binding. The
+        // global Variant only needs the native object, and retaining the generic wrapper
+        // can make later typed singleton access reuse the wrong wrapper or outlive the DLL.
+        if (singleton && singleton != engine) {
+            GDE_INTERFACE(object_free_instance_binding)(singleton->_owner, godot::internal::token);
+        }
     }
 
     initialized = true;
@@ -175,7 +192,7 @@ String OScriptLanguage::_get_extension() const {
 }
 
 void OScriptLanguage::_finish() {
-    if (finishing) {
+    if (!initialized || finishing) {
         return;
     }
 
@@ -219,6 +236,13 @@ void OScriptLanguage::_finish() {
         _template_registry = nullptr;
     }
 
+    global_array.clear();
+    globals.clear();
+    named_globals.clear();
+    global_array_empty_indexes.clear();
+    _global_array = nullptr;
+
+    initialized = false;
     finishing = false;
 }
 
@@ -552,6 +576,9 @@ void OScriptLanguage::_reload_all_scripts()
                 if (globals.has(singleton_name)) {
                     Object* singleton = Engine::get_singleton()->get_singleton(singleton_name);
                     _add_global(singleton_name, singleton);
+                    if (singleton && singleton != Engine::get_singleton()) {
+                        GDE_INTERFACE(object_free_instance_binding)(singleton->_owner, godot::internal::token);
+                    }
                 }
             }
         }

@@ -717,9 +717,9 @@ bool OScriptNodeCallBuiltinFunction::_has_execution_pins(const MethodInfo& p_met
 
 String OScriptNodeCallBuiltinFunction::get_tooltip_text() const {
     if (!_reference.method.name.is_empty()) {
-        return vformat("Calls the built-in Godot function '%s'", _reference.method.name);
+        return vformat("Calls the built-in Redot function '%s'", _reference.method.name);
     }
-    return "Calls the specified built-in Godot function";
+    return "Calls the specified built-in Redot function";
 }
 
 String OScriptNodeCallBuiltinFunction::get_node_title() const {

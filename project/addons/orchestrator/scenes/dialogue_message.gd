@@ -33,7 +33,7 @@ const TEXT_SPEED = 0.03
 ##
 var dialogue_data : Dictionary
 
-## Requirede by Orchestrator, passes the selected choice from
+## Required by Orchestrator; passes the selected choice from
 ## the Dialogue UI back to the OrchestratorScript.
 var selection : int
 
@@ -73,6 +73,9 @@ func _ready() -> void:
 	
 	
 func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+
 	if event is InputEventKey:
 		if event.is_pressed() and _should_end_typing(event.keycode):	
 			if _current_tween.is_running():
