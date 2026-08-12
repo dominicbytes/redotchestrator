@@ -23,6 +23,10 @@ artwork, and adds deterministic all-platform release automation.
 - Exported release DLL matches the built release DLL byte-for-byte.
 - Deterministic-package tests: 4 passed.
 - All GitHub Actions workflows pass actionlint 1.7.12.
+- Hosted GitHub Actions run `31560191202`: 19 successful jobs across Linux,
+  macOS, Windows, Android, Web, iOS, and combined artifact assembly.
+- Downloaded hosted plugin artifact: strict package validation passed; generated
+  package SHA-256 `768d6805f0ffa1edac64cfe1403d99f506ac65e2110be284c0114fc85ae9dec2`.
 
 Exact source, dependency, tool, and binary hashes are in `UPSTREAM_LOCK.md` and
 the companion evidence workbook.
@@ -36,8 +40,7 @@ serialized-data and settings migration.
 
 ## External closure
 
-The repository is technically ready to be posted as a fork. The first public
-release remains conditional on Redot trademark clearance for the chosen name and
-one green hosted all-platform matrix. The workflow enforces the latter by
-withholding the combined release package when any descriptor platform artifact
-is absent.
+The repository is public as the `dominicbytes/redotchestrator` fork, its first
+hosted all-platform matrix is green, and its combined plugin artifact passes the
+strict release packager. The first tagged release remains conditional on Redot
+trademark clearance for the chosen name and explicit owner authorization.

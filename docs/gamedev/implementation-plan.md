@@ -4,8 +4,9 @@
 - Source baseline: `v2.5.stable` / `775cc4549657199b385f0a16e4c5523aba8b5500`
 - Target: Redot LTS 26.2 / GDExtension compatibility API 4.5.2
 - Local implementation status: complete
-- Fork status: ready for owner review and first hosted CI run
-- Public release status: externally gated by name clearance and hosted CI
+- Fork status: public at `dominicbytes/redotchestrator`; `redot-26.2` is default
+- Hosted CI status: complete — 19 successful jobs in run `31560191202`
+- Public release status: externally gated by name clearance and explicit tag authorization
 
 ## Assumptions retained
 
@@ -56,18 +57,15 @@
 | Embedded-PCK export runtime | PASS — exit 0 |
 | Exported/source release DLL equality | PASS — identical SHA-256 |
 | GitHub workflow syntax/static analysis | PASS — actionlint 1.7.12 |
-| Hosted non-Windows platform execution | PENDING — first fork CI |
+| Hosted all-platform execution | PASS — 19 successful jobs; combined plugin/demo artifacts uploaded |
 | Public-name permission | BLOCKED EXTERNALLY — Redot trademark clearance |
 
 ## Remaining publication sequence
 
 1. Obtain written permission or identify an applicable published policy for the
    `redotchestrator` name.
-2. With owner authorization, create/push `dominicbytes/redotchestrator` and run
-   the full hosted matrix.
-3. Repair any host-specific failure; do not weaken the package validator or
-   remove descriptor targets to force a green result.
-4. Tag the green commit `v2.5.stable` and verify the release ZIP, manifest,
+2. With explicit owner authorization, tag the green commit `v2.5.stable` and
+   verify the release ZIP, manifest,
    checksums, updater listing, and clean install from the exact public URL.
 
 ## Completion interpretation
@@ -75,6 +73,7 @@
 The port's source implementation and local Redot 26.2 verification are complete.
 Compilation alone was not used as acceptance: parser/resource/runtime fixtures,
 the editor library, the release library, updater policy, real export, and
-packaging logic all have executable evidence. Remote platform runs and trademark
-permission are external release gates that cannot be completed before the fork
-exists or on behalf of the trademark owner.
+packaging logic all have executable evidence. The first remote platform matrix
+also passed and its universal plugin artifact passed the strict packager after
+download. Trademark permission remains the only external release gate that
+cannot be completed on behalf of the trademark owner.

@@ -70,11 +70,11 @@
 ## ADR-0017: Define completion as full operation on Redot 26.2
 
 - Date: 2026-08-11
-- Status: implemented locally; hosted platform execution remains a release gate.
+- Status: implemented and verified locally and in hosted platform CI.
 - Decision: port every applicable `v2.5.stable` workflow so `redotchestrator` clean-installs, enables, authors and persists graphs, executes and debugs them, integrates with the editor, updates safely from a controlled Redot channel, and exports every claimed target on Redot 26.2.
 - Rationale: the requested outcome is a working latest-version plugin on Redot 26.2, not merely acquired binaries, a successful compile, or a native-library load.
 - Alternative: stop after compilation and representative smoke tests.
-- Consequence: every applicable upstream feature needs a traceable fixture and passing result; an omitted or untested feature blocks completion unless the user explicitly accepts it as a scoped exception.
+- Consequence: every applicable upstream feature needs a traceable fixture and passing result; an omitted or untested feature blocks completion unless the user explicitly accepts it as a scoped exception. The first hosted matrix passed with 19 successful jobs in run `31560191202`.
 
 ## ADR-0018: Separate Redot product version from inherited API compatibility
 

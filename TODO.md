@@ -15,14 +15,16 @@
 - [x] Pin GitHub Actions and the Emscripten SDK to immutable revisions.
 - [x] Add all-platform CI artifact assembly and strict deterministic packaging.
 - [x] Verify a Windows release-template run and exported executable.
+- [x] Publish `dominicbytes/redotchestrator` as a fork with `redot-26.2` as the
+  default branch.
+- [x] Pass the first hosted Linux, macOS, Windows, Android, Web, and iOS matrix:
+  19 successful jobs in run `31560191202`.
+- [x] Download the hosted universal plugin artifact and pass the strict package
+  validator against all descriptor libraries.
 
-## Required before public posting or release
+## Required before tagged release
 
 - [ ] Obtain Redot trademark/brand clearance for `redotchestrator`.
-- [ ] Confirm the intended `dominicbytes/redotchestrator` publication target and
-  authorize the external GitHub actions.
-- [ ] Run the first hosted Linux, macOS, Windows, Android, Web, and iOS matrix;
-  fix any environment-specific failure before tagging.
 - [ ] From the green commit, tag `v2.5.stable` and verify the deterministic ZIP,
   checksums, manifest, updater metadata, and clean installation from the exact
   release URL.

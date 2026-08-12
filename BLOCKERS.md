@@ -1,8 +1,9 @@
-# Blockers and external release gates
+# External release gates
 
-There are no unresolved local implementation blockers for creating the source
-fork. The Redot 26.2 port builds, loads, executes its upstream integration
-fixtures, exports, and passes its native updater-security tests on Windows.
+There are no unresolved technical blockers for the source fork. The Redot 26.2
+port builds, loads, executes its upstream integration fixtures, exports, passes
+its native updater-security tests on Windows, and completed its first hosted
+all-platform matrix with 19 successful jobs.
 
 ## External gates before public release
 
@@ -15,25 +16,13 @@ fixtures, exports, and passes its native updater-security tests on Windows.
   non-affiliation notice, but those measures do not themselves authorize the
   name.
 - Clear this gate with written permission or a demonstrably applicable Redot
-  brand-use policy before making the repository public under this name.
+  brand-use policy before publishing or promoting a tagged release.
 
-### RELEASE-CI: First remote all-platform run
+### RELEASE-AUTHORIZATION: Tagged release
 
-- Windows editor/release binaries, the editor suite, and an exported executable
-  are locally verified.
-- Linux, macOS, Android, Web, and iOS jobs are configured with immutable action
-  pins and exact Redot/redot-cpp inputs, but those hosted environments do not
-  exist until the fork is posted.
-- The release job cannot publish a ZIP unless every platform artifact is present
-  and the strict package validator finds every descriptor library.
-- Clear this operational gate by pushing the fork, observing one green matrix,
-  and tagging `v2.5.stable` only after the green run.
-
-### RELEASE-AUTHORIZATION: External publication
-
-Creating a GitHub fork, pushing commits, or publishing a release is an external
-state change. Perform it only after the repository owner explicitly confirms
-the target and authorizes publication.
+The source fork is public, but no tag or GitHub release has been created. Create
+`v2.5.stable` and publish its deterministic package only after the repository
+owner explicitly requests the release and the name-clearance gate is resolved.
 
 ## Resolved preflight gates
 
@@ -46,3 +35,5 @@ the target and authorizes publication.
 | Restricted artwork | Removed upstream logos and Godot-logo project icons; added original SVG artwork and an asset inventory. |
 | Source-only package | Added deterministic strict packaging, manifest generation, rights-file inclusion, and tag-gated release automation. |
 | Unbounded/latest test downloads | Runner now requires an explicit Redot binary and enforces import/scene timeouts; CI downloads a checksum-pinned Redot 26.2 editor. |
+| Public downstream fork | Created `dominicbytes/redotchestrator` as a true fork and made `redot-26.2` the default branch. |
+| First hosted all-platform run | [Run 31560191202](https://github.com/dominicbytes/redotchestrator/actions/runs/31560191202) completed with 19 successful jobs and uploaded combined plugin/demo artifacts. |

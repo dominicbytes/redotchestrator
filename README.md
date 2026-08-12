@@ -9,10 +9,10 @@ workflows while replacing the Godot 4.7 integration with Redot 26.2 bindings.
 ## Status
 
 The source port is implemented and locally validated on Windows against the
-official Redot 26.2 editor and release template. The repository is ready to be
-forked and to run its all-platform GitHub Actions matrix. A tagged release is
-created only after Linux, macOS, Windows, Android, Web, and iOS artifacts have
-all been assembled into one strictly validated package.
+official Redot 26.2 editor and release template. The first hosted GitHub Actions
+matrix also passed on commit `1ee46ff31a6a3e93ebb8c1d82897ee9c3d77c543`:
+all Linux, macOS, Windows, Android, Web, and iOS targets built successfully and
+the combined plugin and demo artifacts were assembled.
 
 | Item | Locked value or result |
 |---|---|
@@ -23,10 +23,14 @@ all been assembled into one strictly validated package.
 | Windows integration suite | 42 passed, 0 failed, 0 crashed, 0 errored |
 | Native updater-security suite | Passed |
 | Windows release/export smoke | Passed; exported process exited 0 |
+| Hosted all-platform matrix | Passed; 19 jobs succeeded in [run 31560191202](https://github.com/dominicbytes/redotchestrator/actions/runs/31560191202) |
+| Hosted universal plugin artifact | Passed strict local package validation after download |
 
-The initial public posting still needs confirmation that the selected name may
-use the Redot trademark. The project does not include the Redot logo and does
-not claim affiliation or endorsement. See [BLOCKERS.md](BLOCKERS.md).
+The source fork is public at
+[`dominicbytes/redotchestrator`](https://github.com/dominicbytes/redotchestrator).
+A tagged release still needs confirmation that the selected name may use the
+Redot trademark. The project does not include the Redot logo and does not claim
+affiliation or endorsement. See [BLOCKERS.md](BLOCKERS.md).
 
 ## Install
 
