@@ -73,3 +73,14 @@ SDK is pinned to commit `d49219d03a41cd12f95a33ba84273c20d41fd350`
 The release workflow rejects a tag that does not match `VERSION`, an incomplete
 descriptor library set, removed artwork, symlinks, editor caches, and native
 development artifacts.
+
+## First hosted matrix evidence
+
+- Repository: `https://github.com/dominicbytes/redotchestrator`
+- Default branch: `redot-26.2`
+- Verified source commit: `1ee46ff31a6a3e93ebb8c1d82897ee9c3d77c543`
+- GitHub Actions run: `31560191202` (19 jobs succeeded; tag-only release skipped)
+- Plugin artifact: `9127825011`, GitHub digest `sha256:9b3b82d45a6333caa2914f8141d1d76978903dbb355d91cafe8d8c239b4144a6`
+- Demo artifact: `9127825442`, GitHub digest `sha256:0b8fd0db1f44dd6da8b6b344811fd4ded1856803d40e6e497e19b31d89b6699a`
+- Package generated from the downloaded combined plugin artifact: 53,367,796
+  bytes, SHA-256 `768d6805f0ffa1edac64cfe1403d99f506ac65e2110be284c0114fc85ae9dec2`
