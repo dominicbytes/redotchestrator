@@ -84,6 +84,7 @@ jobs:
             --version "$GITHUB_REF_NAME" \
             --version-file VERSION \
             --redot-compatibility v26.2.0 \
+            --redot-compatibility-maximum v26.3.0 \
             --manifest dist/release_manifests.json
           sha256sum "$archive" dist/release_manifests.json
 

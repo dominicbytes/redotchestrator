@@ -29,6 +29,13 @@ Material downstream changes include:
 - making CI, integration tests, artifact assembly, and release manifests
   Redot-specific and reproducible from immutable dependency inputs.
 
+The 26.3 compatibility update retains the 26.2 bindings, adds a guarded
+engine-owned Variant cleanup path, corrects updater runtime-version selection,
+adds an explicit tested manifest upper bound and a maintenance release identity,
+loads the editor logo directly from SVG before imported textures exist,
+and extends bounded integration checks and checksum-pinned CI to 26.3. Windows
+builds trim source locations from both the plugin and binding compilation units.
+
 Serialized-resource and API compatibility identifiers such as `OScript`,
 `.torch`, `.os`, the `orchestrator/` settings namespace, and
 `res://addons/orchestrator` intentionally remain unchanged so existing projects

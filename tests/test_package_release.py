@@ -56,6 +56,21 @@ class PackageReleaseTests(unittest.TestCase):
                 self.assertTrue(all(name.startswith(PACKAGE_RELEASE.ADDON_PREFIX) for name in archive.namelist()))
                 self.assertIn("addons/orchestrator/LICENSE", archive.namelist())
 
+    def test_compatibility_range_is_recorded_and_validated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            distribution = self.make_distribution(root)
+            archive = root / "redotchestrator-v2.5.1.stable-plugin.zip"
+            manifest = root / "release_manifests.json"
+            entry = PACKAGE_RELEASE.package_release(
+                distribution, archive, "v2.5.1.stable", "v26.2.0", manifest, "v26.3.0")
+            self.assertEqual("v26.3.0", entry["redot_compatibility_maximum"])
+            self.assertEqual([entry], json.loads(manifest.read_text()))
+            for maximum in ("", "26.3", "v26.1.0", "v27.0.0"):
+                with self.subTest(maximum=maximum), self.assertRaises(ValueError):
+                    PACKAGE_RELEASE.package_release(
+                        distribution, archive, "v2.5.1.stable", "v26.2.0", manifest, maximum)
+
     def test_missing_descriptor_library_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             distribution = self.make_distribution(Path(temporary))

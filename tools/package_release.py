@@ -226,11 +226,19 @@ def package_release(
     version: str,
     redot_compatibility: str,
     manifest: Path,
+    redot_compatibility_maximum: str | None = None,
 ) -> dict[str, object]:
     if not VERSION_RE.fullmatch(version):
         raise ValueError(f"Unsupported release version: {version}")
     if not REDOT_COMPATIBILITY_RE.fullmatch(redot_compatibility):
         raise ValueError(f"Unsupported Redot compatibility version: {redot_compatibility}")
+    if redot_compatibility_maximum is not None:
+        if not REDOT_COMPATIBILITY_RE.fullmatch(redot_compatibility_maximum):
+            raise ValueError("Unsupported Redot compatibility maximum")
+        minimum = tuple(map(int, redot_compatibility[1:].split(".")))
+        maximum = tuple(map(int, redot_compatibility_maximum[1:].split(".")))
+        if minimum[0] != maximum[0] or minimum > maximum:
+            raise ValueError("Invalid Redot compatibility range")
     expected_name = f"redotchestrator-{version}-plugin.zip"
     if output.name != expected_name:
         raise ValueError(f"Release archive must be named {expected_name}")
@@ -245,6 +253,8 @@ def package_release(
         "asset_size": output.stat().st_size,
         "blog_url": f"https://github.com/dominicbytes/redotchestrator/releases/tag/{version}",
     }
+    if redot_compatibility_maximum is not None:
+        entry["redot_compatibility_maximum"] = redot_compatibility_maximum
     write_manifest(manifest, entry)
     return entry
 
@@ -255,6 +265,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("output", type=Path, help="Destination plugin ZIP")
     parser.add_argument("--version", required=True, help="Release tag, for example v2.5.stable")
     parser.add_argument("--redot-compatibility", required=True, help="Minimum compatible Redot release")
+    parser.add_argument("--redot-compatibility-maximum", help="Inclusive tested Redot upper bound")
     parser.add_argument("--manifest", required=True, type=Path, help="Manifest JSON to update")
     parser.add_argument("--version-file", type=Path, help="VERSION file that must match the release tag")
     return parser.parse_args()
@@ -274,6 +285,7 @@ def main() -> int:
             args.version,
             args.redot_compatibility,
             args.manifest,
+            args.redot_compatibility_maximum,
         )
     except (OSError, ValueError, configparser.Error, json.JSONDecodeError) as error:
         print(f"release packaging failed: {error}", file=os.sys.stderr)

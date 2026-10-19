@@ -115,3 +115,29 @@
 - Decision: remove the separately restricted upstream Orchestrator logos and Godot-logo project icons and replace them with original SVG artwork that does not reproduce the Redot or Godot marks.
 - Rationale: Apache-2.0 source rights did not establish permission for every upstream brand asset.
 - Consequence: all redistributed visual sources are listed in `ASSET_LICENSES.md`; public use of the word `Redot` remains a separate trademark gate.
+
+## ADR-0023: Share the 26.2 binding baseline with Redot 26.3
+
+- Date: 2026-10-19.
+- Status: implemented; official Windows editor shutdown remains an engine gate.
+- Decision: retain redot-cpp `598ec78e`, its 4.5.2 API and existing script-instance
+  structures. Patch only the build-tree Variant cleanup table lookup to delegate
+  newer, unknown types to the engine destructor. Keep both GDExtension API bounds
+  at 4.5.2. Use an explicit Redot manifest range from 26.2.0 through 26.3.0 and
+  bump the plugin maintenance version so older installations can see the update.
+- Rationale: authoritative stable-engine dumps preserve every existing class
+  method/hash, virtual signature, interface function and native structure layout.
+  The additive Struct type does not change Variant storage, but it exposes an
+  out-of-bounds cleanup table lookup in the old bindings. A reference-lifetime
+  regression fails with the old DLL and passes with the guarded build.
+- Alternatives: a 26.3 custom API would raise the binding runtime minimum and
+  require typed Struct integration, breaking the shared 26.2 build. The official
+  redot-cpp default branch still points to the 26.2 tag, so there is no newer
+  official binding revision to adopt.
+- Consequences: existing graphs keep their API/serialization identifiers; this
+  update does not add typed Struct authoring or persistence. The updater queries
+  the Redot product version rather than its inherited Godot version, preserves
+  legacy same-minor manifests, validates explicit bounds, and omits incompatible
+  releases from notifications. The new Linux 26.3 job tests the same editor
+  artifact used by 26.2. Engine shutdown failures stay visible; no crash or leak
+  suppression is added to CI.

@@ -38,6 +38,28 @@ from pathlib import Path
 MAX_JOBS = 4
 IMPORT_TIMEOUT_SECONDS = 120
 SCENE_TIMEOUT_SECONDS = 30
+VERSION_TIMEOUT_SECONDS = 30
+
+# Official Redot 26.3-stable leaks rendering and text-server RIDs when the headless
+# editor shuts down after an import, with or without this addon installed. Only these
+# exact shutdown lines are tolerated, only on official 26.3-stable builds and only for the
+# import step; any other import output still fails the run. Drop this once a fixed engine ships.
+KNOWN_IMPORT_SHUTDOWN_LEAKS = {
+    "26.3.stable.official.": [
+        (re.compile(r'WARNING: \d+ RIDs of type "(Canvas|CanvasItem)" were leaked\.'),
+         re.compile(r'at: _free_rids \(servers/rendering/renderer_canvas_cull\.cpp:\d+\)')),
+        (re.compile(r"ERROR: \d+ RID allocations of type '("
+                    r"N16RendererViewport8ViewportE"
+                    r"|PN13RendererDummy14TextureStorage12DummyTextureE"
+                    r"|PN18TextServerAdvanced22ShapedTextDataAdvancedE"
+                    r"|PN18TextServerAdvanced12FontAdvancedE"
+                    r")' were leaked at exit\."), None),
+        (re.compile(r"WARNING: ObjectDB instances leaked at exit \(run with --verbose for details\)\."),
+         re.compile(r"at: cleanup \(core/object/object\.cpp:\d+\)")),
+    ],
+}
+
+engine_version = ""
 
 scenes_dir = (Path(__file__).parent / "scenes").resolve()
 
@@ -94,6 +116,46 @@ def process_output(value):
     if isinstance(value, bytes):
         return value.decode(errors="replace")
     return value
+
+def query_engine_version():
+    try:
+        result = subprocess.run(
+            [redot_path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=VERSION_TIMEOUT_SECONDS)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    return result.stdout.strip().splitlines()[-1].strip() if result.stdout.strip() else ""
+
+def known_import_leaks():
+    for prefix, patterns in KNOWN_IMPORT_SHUTDOWN_LEAKS.items():
+        if engine_version.startswith(prefix):
+            return prefix, patterns
+    return None, []
+
+def strip_known_import_leaks(stderr):
+    """Remove tolerated engine shutdown leak lines; return (remaining, removed count)."""
+    _, patterns = known_import_leaks()
+    if not patterns:
+        return stderr, 0
+    lines = stderr.splitlines()
+    remaining = []
+    removed = 0
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        for message, location in patterns:
+            if message.fullmatch(line):
+                removed += 1
+                if location and i + 1 < len(lines) and location.fullmatch(lines[i + 1].strip()):
+                    removed += 1
+                    i += 1
+                break
+        else:
+            remaining.append(lines[i])
+        i += 1
+    return "\n".join(remaining), removed
 
 def parse_version(v):
     return tuple(int(x) for x in v.split(".")[:2])
@@ -205,9 +267,11 @@ def import_project():
                 redot_path,
                 "--no-header",
                 "--headless",
+                "--audio-driver", "Dummy",
                 "--path",
                 Path(__file__).parent,
                 "--import",
+                "--quit-after", "600",
                 "--quiet"],
             capture_output=True,
             text=True,
@@ -224,21 +288,25 @@ def import_project():
             print(stderr, file=sys.stderr)
         sys.exit(1)
 
-    if result.returncode != 0:
+    if result.stdout.strip():
+        print(result.stdout.rstrip())
+    stderr = result.stderr
+    if result.returncode == 0:
+        stderr, ignored = strip_known_import_leaks(stderr)
+        if ignored:
+            prefix, _ = known_import_leaks()
+            print(f"Ignored {ignored} known Redot {prefix} shutdown leak lines from the import step.")
+    if stderr.strip():
+        print(stderr.rstrip(), file=sys.stderr)
+    if result.returncode != 0 or stderr.strip():
         # A segfault surfaces as a negative return code (e.g. -11 for SIGSEGV).
         # Surface whatever the binary emitted so the crash can be diagnosed
         # instead of failing silently on a discarded DEVNULL.
         signal_name = ""
-        if result.returncode < 0:
+        if -64 < result.returncode < 0:
             signal_name = f" ({signal.Signals(-result.returncode).name})"
         print(f"Project import failed with exit code {result.returncode}"
               f"{signal_name}", file=sys.stderr)
-        if result.stdout.strip():
-            print("---------- stdout ----------", file=sys.stderr)
-            print(result.stdout.rstrip(), file=sys.stderr)
-        if result.stderr.strip():
-            print("---------- stderr ----------", file=sys.stderr)
-            print(result.stderr.rstrip(), file=sys.stderr)
         sys.exit(1)
 
 def run_scene(scene_file):
@@ -254,8 +322,8 @@ def run_scene(scene_file):
 
     # Number of main-loop iterations before Redot force-quits.
     # Defaults to 2.
-    # Physics scenes typically pair this with fixed_fps and quit_after: 1 to capture a single deterministic frame.
-    frame_args += ["--quit-after", meta.get("quit_after", "2")]
+    # Fixtures may quit themselves earlier; the automation bound is at least 2.
+    frame_args += ["--quit-after", str(max(2, int(meta.get("quit_after", "2"))))]
 
     start = time.monotonic()
     try:
@@ -264,6 +332,7 @@ def run_scene(scene_file):
                 redot_path,
                 "--no-header",
                 "--headless",
+                "--audio-driver", "Dummy",
                 "--path",
                 Path(__file__).parent,
                 *frame_args,
@@ -346,6 +415,8 @@ def parse_args():
     parser.add_argument(
         "-k", "--filter", dest="filter", default=None,
         help="Only run scenes whose path (relative to scenes/) contains this substring.")
+    parser.add_argument("--skip-import", action="store_true",
+        help="Use an already imported scratch project; import failures are never ignored automatically.")
     parser.add_argument(
         "--no-color", action="store_true",
         help="Disable colored output.")
@@ -365,7 +436,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    global version, redot_path, use_color
+    global version, redot_path, use_color, engine_version
 
     args = parse_args()
     use_color = sys.stdout.isatty() and not args.no_color
@@ -382,11 +453,14 @@ def main():
         sys.exit(1)
 
     version = args.version or get_minimum_godot_version()
-    print(f"Using Redot binary {redot_path}")
+    print(f"Using Redot binary {redot_path.name}")
+    engine_version = query_engine_version()
+    print(f"Redot version {engine_version or 'unknown'}")
 
     update_libraries()
-    clean_godot_cache()
-    import_project()
+    if not args.skip_import:
+        clean_godot_cache()
+        import_project()
 
     jobs = max(1, min(args.jobs, MAX_JOBS))
 

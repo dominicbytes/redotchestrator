@@ -17,7 +17,6 @@
 #include "editor/updater/updater.h"
 
 #include "common/callable_lambda.h"
-#include "common/godot_version.h"
 #include "common/macros.h"
 #include "common/scene_utils.h"
 #include "common/settings.h"
@@ -28,6 +27,7 @@
 
 #include <godot_cpp/classes/center_container.hpp>
 #include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/display_server.hpp>
 #include <godot_cpp/classes/editor_paths.hpp>
 #include <godot_cpp/classes/file_access.hpp>
@@ -96,6 +96,19 @@ namespace {
     bool is_allowed_release_notes_url(const String& p_url) {
         const CharString utf8 = p_url.utf8();
         return redotchestrator::updater::is_allowed_release_notes_url(as_utf8_view(utf8));
+    }
+
+    String get_redot_runtime_version() {
+        const Dictionary version = Engine::get_singleton()->get_version_info();
+        return vformat("v%d.%d.%d", version["major"], version["minor"], version["patch"]);
+    }
+
+    bool is_manifest_compatible(const OrchestratorReleaseManifest& p_manifest, const String& p_current) {
+        const CharString minimum = p_manifest.redot_compatibility.utf8();
+        const CharString maximum = p_manifest.redot_compatibility_maximum.utf8();
+        const CharString current = p_current.utf8();
+        return redotchestrator::updater::is_redot_version_supported(
+            as_utf8_view(minimum), as_utf8_view(maximum), as_utf8_view(current));
     }
 
     Error remove_tree(const String& p_path) {
@@ -230,12 +243,6 @@ bool OrchestratorVersion::is_equal(const OrchestratorVersion& p_other) const {
         && patch == p_other.patch
         && build.name == p_other.build.name
         && build.version == p_other.build.version;
-}
-
-bool OrchestratorVersion::is_compatible(const OrchestratorVersion& p_other) const {
-    // Redot releases use a year-like major line. Compatibility is intentionally
-    // limited to the manifest's major/minor line unless a later manifest says otherwise.
-    return p_other.major == major && p_other.minor == minor && p_other.patch >= patch;
 }
 
 String OrchestratorVersion::to_string() const {
@@ -567,7 +574,9 @@ void OrchestratorUpdaterVersionPicker::_update_tree(bool p_stable_only) {
 
         TreeItem* item = _tree->get_root()->create_child();
         item->set_text(0, release_item.release.tag);
-        item->set_text(1, release_item.manifest.redot_compatibility);
+        item->set_text(1, release_item.manifest.redot_compatibility
+            + (release_item.manifest.redot_compatibility_maximum.is_empty() ? String()
+                : " - " + release_item.manifest.redot_compatibility_maximum));
         item->set_text(2, vformat("%s", release_item.release.prerelease ? "Yes" : "No"));
         item->set_text(3, Time::get_singleton()->get_datetime_string_from_unix_time(unix_time, true));
         item->set_text(4, String::humanize_size(release_item.release.asset_size));
@@ -580,8 +589,7 @@ void OrchestratorUpdaterVersionPicker::_update_tree(bool p_stable_only) {
         const String release_url = StringUtils::default_if_empty(release_item.blog_url, release_item.release.release_url);
         item->set_meta("release_url", release_url);
 
-        const OrchestratorVersion compat_version = OrchestratorVersion::parse(release_item.manifest.redot_compatibility);
-        if (!compat_version.is_compatible(_godot_version)) {
+        if (!is_manifest_compatible(release_item.manifest, _redot_version)) {
             item->add_button(0, SceneUtils::get_editor_icon("KeyXScale"), -1, true, "Your Redot version is not compatible");
             item->set_meta("compatible", false);
         } else {
@@ -676,12 +684,8 @@ void OrchestratorUpdaterVersionPicker::_bind_methods() {
 }
 
 OrchestratorUpdaterVersionPicker::OrchestratorUpdaterVersionPicker() {
-    GodotVersionInfo gd_version;
-
-    // Generate the editor's current Redot version
-    // Used in compatibility checks
-    _godot_version = OrchestratorVersion::parse(vformat(
-        "v%d.%d.%d", gd_version.major(), gd_version.minor(), gd_version.patch()));
+    // get_godot_version reports the inherited 4.5.2 API, not the Redot release.
+    _redot_version = get_redot_runtime_version();
 
     set_title("Select Redotchestrator Version");
 
@@ -815,6 +819,13 @@ void OrchestratorUpdaterButton::_process_release_manifests() {
             OrchestratorReleaseManifest manifest;
             manifest.name = release["version"];
             manifest.redot_compatibility = release["redot_compatibility"];
+            if (release.has("redot_compatibility_maximum")) {
+                if (release["redot_compatibility_maximum"].get_type() != Variant::STRING
+                    || String(release["redot_compatibility_maximum"]).is_empty()) {
+                    continue;
+                }
+                manifest.redot_compatibility_maximum = release["redot_compatibility_maximum"];
+            }
             manifest.asset_name = release["asset_name"];
             manifest.sha256 = String(release["sha256"]).to_lower();
             manifest.asset_size = release["asset_size"];
@@ -823,11 +834,12 @@ void OrchestratorUpdaterButton::_process_release_manifests() {
                 manifest.blog_url = release["blog_url"];
             }
 
-            const OrchestratorVersion compatibility = OrchestratorVersion::parse(manifest.redot_compatibility);
+            const CharString minimum = manifest.redot_compatibility.utf8();
+            const CharString maximum = manifest.redot_compatibility_maximum.utf8();
             if (!is_valid_release_tag(manifest.name)
                 || !is_valid_redot_compatibility(manifest.redot_compatibility)
-                || compatibility.major <= 0
-                || compatibility.minor < 0
+                || !redotchestrator::updater::is_valid_redot_range(
+                    as_utf8_view(minimum), as_utf8_view(maximum))
                 || !is_plugin_asset_name_for_tag(manifest.asset_name, manifest.name)
                 || !is_valid_sha256(manifest.sha256)
                 || manifest.asset_size <= 0
@@ -943,6 +955,7 @@ void OrchestratorUpdaterButton::_update_picker() {
     _picker->clear_releases();
 
     bool releases_added = false;
+    const String runtime_version = get_redot_runtime_version();
     for (const OrchestratorRelease& release : _releases) {
         // If the release is marked as Draft or Prerelease+NoNotify from GitHub, skip.
         if (release.draft || (release.prerelease && !notify_pre_releases)) {
@@ -961,7 +974,8 @@ void OrchestratorUpdaterButton::_update_picker() {
         }
 
         const OrchestratorReleaseManifest manifest = _manifests.get(release.tag);
-        if (manifest.asset_name != release.plugin_asset_name
+        if (!is_manifest_compatible(manifest, runtime_version)
+            || manifest.asset_name != release.plugin_asset_name
             || manifest.asset_size != release.asset_size
             || manifest.sha256 != release.plugin_asset_digest) {
             continue;

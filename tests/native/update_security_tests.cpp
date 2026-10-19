@@ -47,6 +47,19 @@ int main() {
     expect(!is_valid_redot_compatibility("26.2.0"), "reject unprefixed Redot compatibility");
     expect(!is_valid_redot_compatibility("v26.2.0.extra"), "reject extra Redot compatibility component");
 
+    expect(is_redot_version_supported("v26.2.0", "v26.3.0", "v26.2.0"), "range accepts 26.2");
+    expect(is_redot_version_supported("v26.2.0", "v26.3.0", "v26.3.0"), "range accepts 26.3");
+    expect(!is_redot_version_supported("v26.2.0", "v26.3.0", "v26.3.1"), "reject untested later patch");
+    expect(!is_redot_version_supported("v26.2.0", "v26.3.0", "v26.4.0"), "reject future minor");
+    expect(!is_redot_version_supported("v26.2.0", "v26.3.0", "v4.5.2"), "reject inherited Godot version");
+    expect(!is_redot_version_supported("v26.2.0", "v26.3.0", "v26.1.0"), "reject older runtime");
+    expect(is_redot_version_supported("v26.2.0", "", "v26.2.1"), "legacy manifest accepts same-line patch");
+    expect(!is_redot_version_supported("v26.2.0", "", "v26.3.0"), "legacy manifest rejects 26.3");
+    expect(!is_valid_redot_range("v26.3.0", "v26.2.0"), "reject reversed range");
+    expect(!is_valid_redot_range("v26.2.0", "v27.0.0"), "reject cross-major range");
+    expect(!is_valid_redot_range("v26.2.0", "invalid"), "reject malformed maximum");
+    expect(!is_valid_redot_range("v999999999999999999.2.0", ""), "reject numeric overflow");
+
     expect(is_allowed_release_asset_url(
         "https://github.com/dominicbytes/redotchestrator/releases/download/v2.5.stable/redotchestrator-v2.5.stable-plugin.zip",
         "v2.5.stable"),

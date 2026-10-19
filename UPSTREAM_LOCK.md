@@ -32,7 +32,7 @@ the product baseline; it was used only to compare older 4.5-compatible code.
 the superproject gitlinks above are the authority. The engine checkout is an
 optional source/reference input; normal GDExtension builds use redot-cpp.
 
-## Locally verified Windows toolchain
+## Original 26.2 Windows verification
 
 | Input or output | Version or SHA-256 |
 |---|---|
@@ -50,7 +50,7 @@ optional source/reference input; normal GDExtension builds use redot-cpp.
 
 ## CI acquisition lock
 
-The Linux editor job downloads only the official Redot 26.2 archive at:
+The baseline Linux editor job downloads the official Redot 26.2 archive at:
 
 ```text
 https://github.com/Redot-Engine/redot-engine/releases/download/redot-26.2-stable/Redot_v26.2-stable_linux_x64.zip
@@ -64,11 +64,12 @@ SDK is pinned to commit `d49219d03a41cd12f95a33ba84273c20d41fd350`
 
 ## Release identity
 
-- VERSION tag: `v2.5.stable`
-- Archive: `redotchestrator-v2.5.stable-plugin.zip`
+- VERSION tag: `v2.5.1.stable`
+- Archive: `redotchestrator-v2.5.1.stable-plugin.zip`
 - Archive root: `addons/orchestrator/`
 - Manifest asset: `release_manifests.json`
-- Required compatibility field: `v26.2.0`
+- Minimum compatibility field: `v26.2.0`
+- Inclusive maximum compatibility field: `v26.3.0`
 
 The release workflow rejects a tag that does not match `VERSION`, an incomplete
 descriptor library set, removed artwork, symlinks, editor caches, and native
@@ -84,3 +85,57 @@ development artifacts.
 - Demo artifact: `9127825442`, GitHub digest `sha256:0b8fd0db1f44dd6da8b6b344811fd4ded1856803d40e6e497e19b31d89b6699a`
 - Package generated from the downloaded combined plugin artifact: 53,367,796
   bytes, SHA-256 `768d6805f0ffa1edac64cfe1403d99f506ac65e2110be284c0114fc85ae9dec2`
+
+## Redot 26.3 runtime lock
+
+- Official engine: `redot-26.3-stable`, commit
+  `85e5203945af15755dd2f66cb6fdf7545fd88c0b`.
+- Official Windows console version: `26.3.stable.official.85e520394`.
+- Compatibility API header on both 26.2 and 26.3: Godot `4.5.2`, single precision.
+- The binding gitlink remains `598ec78e86b2c240a023f6de13daba70f7de8610`.
+  At verification, official redot-cpp `master`, `26.2`, and
+  `redot-26.2-stable` all resolve there; no 26.3 tag or newer default commit exists.
+- `cmake/redot-forward-compat.cmake` compiles a build-tree copy of the pinned
+  Variant implementation with a guarded cleanup table lookup for newer types.
+  It does not alter the dependency checkout or regenerate the API.
+- `patches/extension_api.json` and `patches/gdextension_interface.json` remain
+  upstream Godot 4.7 reference inputs, not Redot binding inputs.
+
+The extra CI job downloads the official Linux x64 archive:
+
+```text
+https://github.com/Redot-Engine/redot-engine/releases/download/redot-26.3-stable/Redot_v26.3-stable_linux_x64.zip
+```
+
+SHA-256: `7d5155b80f4262f0a394c5040e539bb330cb63dd147bedd9172d83ec2efdbd91`.
+The downloaded bytes were also verified against official `SHA512-SUMS.txt`:
+`d370f50a85efa1c62549743c9c55f56fdac3f4ea66f353bfa3135d4c4fe68ef47849db7ce5d37b6ab9b09c5aa6ee748e10f44dc2c55485f3e799f5dfe2344166`.
+The release API's asset SHA-256 agrees with the computed digest. All added
+external action references use full commit SHAs.
+
+API comparison: 13 classes and eight methods on existing classes were added;
+none were removed and no existing method hashes or virtual signatures changed.
+The interface header only adds `GDEXTENSION_VARIANT_TYPE_STRUCT` (39), moving
+`VARIANT_MAX` to 40. Existing builtin sizes, member offsets and native structure
+layouts are unchanged. Script language/instance, editor, graph, loader/saver,
+and debugger class APIs are unchanged. See ADR-0023 for the resulting strategy.
+
+## Shared Windows build verification
+
+Both editor and release targets were rebuilt with MSVC `19.51.36248.0`, CMake
+`4.3.1-msvc1`, Visual Studio bundled Ninja, and Python `3.14.7`. The build applies
+`/d1trimfile:<REPO>/` to the plugin and bindings; ASCII and UTF-16LE scans of both
+DLLs found no local path strings.
+
+| Working-tree output | SHA-256 |
+|---|---|
+| Windows editor DLL | `178f2e52648d2793d913602eb4869f2cf3197683a665124be1d9c536f1b27558` |
+| Windows release DLL | `6004dda0a91c84628d55a89198a4916a41857a0afb58e48453c2f29cb0554724` |
+
+The official 26.3 template archive SHA-256 is
+`a05e5d34d8c09b6ac1bcfe9cdca8452dedf5efe42c6b63f7ae5e62c1d04ef410`.
+A Windows release export made by the corrected editor completed with exit 0;
+the exported executable, using that official template and the shared release
+DLL, ran headless with Dummy audio for 120 frames and exited 0 without stderr.
+The official editor also wrote a runnable export, then crashed on shutdown;
+that export command remains a failed editor result.

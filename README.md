@@ -1,6 +1,6 @@
 # redotchestrator
 
-`redotchestrator` is an unofficial Redot 26.2 port of Crater Crash Studios'
+`redotchestrator` is an unofficial Redot 26.2 and 26.3 port of Crater Crash Studios'
 [Orchestrator](https://github.com/CraterCrash/godot-orchestrator) visual-scripting
 plugin. This fork starts from the latest stable upstream release, `v2.5.stable`,
 and preserves its graph, resource, runtime, debugger, dialogue, and editor
@@ -32,10 +32,33 @@ A tagged release still needs confirmation that the selected name may use the
 Redot trademark. The project does not include the Redot logo and does not claim
 affiliation or endorsement.
 
+## Redot 26.3 compatibility
+
+The same pinned 26.2 bindings and Windows DLLs support Redot 26.2 and 26.3.
+Both engines expose Godot compatibility API 4.5.2; the descriptor deliberately
+sets both compatibility bounds to `4.5.2`. The new `Struct` Variant is safely
+released when passed through an untyped native value. Typed Struct graph
+creation and serialization are outside this compatibility update.
+
+The Windows suite contains 42 original fixtures plus a Struct reference-lifetime
+regression. All 43 pass on official 26.2, patched 26.3, and official 26.3 runtime.
+Official Windows 26.3 editor shutdown intermittently crashes with `0xC0000005`
+or emits RID/ObjectDB leak diagnostics, including without this addon. Its import
+result remains a failure; a local engine with the WorldScape ownership and
+editor selection fixes provides the clean editor comparison. The patch is
+unofficial and is not distributed by this repository.
+
+A Windows demo export using official 26.3 templates runs cleanly; the corrected
+editor completes export without shutdown diagnostics.
+
+CI adds a checksum-pinned official Linux 26.3 runtime job using the existing
+26.2-binding editor artifact. That job has not yet run on GitHub Actions.
+See [UPSTREAM_LOCK.md](UPSTREAM_LOCK.md).
+
 ## Install
 
 For an end-user installation, use a release ZIP produced by this repository's
-tag workflow. Extract it into a Redot 26.2 project so the descriptor is at:
+tag workflow. Extract it into a supported Redot project so the descriptor is at:
 
 ```text
 res://addons/orchestrator/orchestrator.gdextension
@@ -67,14 +90,17 @@ binding revisions are recorded in [UPSTREAM_LOCK.md](UPSTREAM_LOCK.md).
 
 ## Verify
 
-Set `REDOT_BIN` to the exact Redot 26.2 editor, then run the integration suite:
+Set `REDOT_BIN` to the exact Redot editor under test, then run the integration suite:
 
 ```powershell
 python tests/run_integration_tests.py --redot-binary "$env:REDOT_BIN" --no-color
 ```
 
 The test runner never downloads or falls back to Godot. It bounds both import
-and per-scene execution. Native updater checks are enabled with
+and per-scene execution, uses Dummy audio, and fails on import stderr even when
+the engine exits zero. For an independently diagnosed editor shutdown defect,
+`--skip-import` can run fixtures in a scratch project already imported by a
+compatible editor; this does not qualify the failed editor import. Native updater checks are enabled with
 `REDOTCHESTRATOR_BUILD_TESTS=ON`, and deterministic release-package checks live
 in `tests/test_package_release.py`.
 
@@ -82,13 +108,18 @@ in `tests/test_package_release.py`.
 
 The editor updater accepts only assets from
 `dominicbytes/redotchestrator` whose tag, filename, size, GitHub-provided digest,
-and controlled manifest SHA-256 all agree. ZIP entries must remain under
+and controlled manifest SHA-256 all agree. Release manifests carry
+`redot_compatibility: "v26.2.0"` and the inclusive tested
+`redot_compatibility_maximum: "v26.3.0"`. The updater uses the Redot runtime
+version, rejects future versions outside that range, and retains the same-minor
+rule for legacy manifests without a maximum. Incompatible releases are omitted
+from update notifications. ZIP entries must remain under
 `addons/orchestrator`; unsafe, duplicate, ambiguous, or oversized paths are
 rejected. Installation uses a staging directory, backup, atomic directory
 activation, and rollback on activation failure.
 
-Release tags must match `VERSION` (currently `v2.5.stable`). The release script
-builds a deterministic `redotchestrator-v2.5.stable-plugin.zip`, verifies every
+Release tags must match `VERSION` (currently `v2.5.1.stable`). The release script
+builds a deterministic `redotchestrator-v2.5.1.stable-plugin.zip`, verifies every
 library referenced by the descriptor, rejects development artifacts and removed
 artwork, and emits the manifest consumed by the updater.
 
