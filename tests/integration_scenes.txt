@@ -16,6 +16,9 @@ features/await_signal_with_parameters.tscn
 features/await_without_coroutine.tscn
 features/b_invalid_argument_cleanup.tscn
 features/b_unsupported_struct.tscn
+features/c_serialization_binary_strings.tscn
+features/c_serialization_corrupt_input.tscn
+features/c_serialization_round_trip.tscn
 features/call_native_static_base_method_runtime.tscn
 features/call_native_static_method_validated.tscn
 features/call_script_method_init.tscn
