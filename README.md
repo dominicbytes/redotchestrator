@@ -40,8 +40,8 @@ sets both compatibility bounds to `4.5.2`. The new `Struct` Variant is safely
 released when passed through an untyped native value. Typed Struct graph
 creation and serialization are outside this compatibility update.
 
-The Windows suite contains 42 original fixtures plus a Struct reference-lifetime
-regression. All 43 pass on official 26.2, patched 26.3, and official 26.3 runtime.
+The suite contains 51 fixtures, including a Struct reference-lifetime
+regression. All 51 pass on Windows with official 26.2 and patched 26.3.
 Official Windows 26.3 editor shutdown intermittently crashes with `0xC0000005`
 or emits RID/ObjectDB leak diagnostics, including without this addon. Its import
 result remains a failure; a local engine with the WorldScape ownership and
@@ -51,9 +51,11 @@ unofficial and is not distributed by this repository.
 A Windows demo export using official 26.3 templates runs cleanly; the corrected
 editor completes export without shutdown diagnostics.
 
-CI adds a checksum-pinned official Linux 26.3 runtime job using the existing
-26.2-binding editor artifact. That job has not yet run on GitHub Actions.
-See [UPSTREAM_LOCK.md](UPSTREAM_LOCK.md).
+CI runs a checksum-pinned official Linux 26.3 job using the existing
+26.2-binding editor artifact. It passed all 51 fixtures in
+[run 39318817595](https://github.com/dominicbytes/redotchestrator/actions/runs/39318817595). That import step tolerates only the
+known official 26.3-stable shutdown leak lines; any other import diagnostic
+still fails. See [UPSTREAM_LOCK.md](UPSTREAM_LOCK.md).
 
 ## Install
 
