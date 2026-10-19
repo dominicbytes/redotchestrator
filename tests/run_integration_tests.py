@@ -205,9 +205,11 @@ def import_project():
                 redot_path,
                 "--no-header",
                 "--headless",
+                "--audio-driver", "Dummy",
                 "--path",
                 Path(__file__).parent,
                 "--import",
+                "--quit-after", "600",
                 "--quiet"],
             capture_output=True,
             text=True,
@@ -224,21 +226,19 @@ def import_project():
             print(stderr, file=sys.stderr)
         sys.exit(1)
 
-    if result.returncode != 0:
+    if result.stdout.strip():
+        print(result.stdout.rstrip())
+    if result.stderr.strip():
+        print(result.stderr.rstrip(), file=sys.stderr)
+    if result.returncode != 0 or result.stderr.strip():
         # A segfault surfaces as a negative return code (e.g. -11 for SIGSEGV).
         # Surface whatever the binary emitted so the crash can be diagnosed
         # instead of failing silently on a discarded DEVNULL.
         signal_name = ""
-        if result.returncode < 0:
+        if -64 < result.returncode < 0:
             signal_name = f" ({signal.Signals(-result.returncode).name})"
         print(f"Project import failed with exit code {result.returncode}"
               f"{signal_name}", file=sys.stderr)
-        if result.stdout.strip():
-            print("---------- stdout ----------", file=sys.stderr)
-            print(result.stdout.rstrip(), file=sys.stderr)
-        if result.stderr.strip():
-            print("---------- stderr ----------", file=sys.stderr)
-            print(result.stderr.rstrip(), file=sys.stderr)
         sys.exit(1)
 
 def run_scene(scene_file):
@@ -254,8 +254,8 @@ def run_scene(scene_file):
 
     # Number of main-loop iterations before Redot force-quits.
     # Defaults to 2.
-    # Physics scenes typically pair this with fixed_fps and quit_after: 1 to capture a single deterministic frame.
-    frame_args += ["--quit-after", meta.get("quit_after", "2")]
+    # Fixtures may quit themselves earlier; the automation bound is at least 2.
+    frame_args += ["--quit-after", str(max(2, int(meta.get("quit_after", "2"))))]
 
     start = time.monotonic()
     try:
@@ -264,6 +264,7 @@ def run_scene(scene_file):
                 redot_path,
                 "--no-header",
                 "--headless",
+                "--audio-driver", "Dummy",
                 "--path",
                 Path(__file__).parent,
                 *frame_args,
@@ -346,6 +347,8 @@ def parse_args():
     parser.add_argument(
         "-k", "--filter", dest="filter", default=None,
         help="Only run scenes whose path (relative to scenes/) contains this substring.")
+    parser.add_argument("--skip-import", action="store_true",
+        help="Use an already imported scratch project; import failures are never ignored automatically.")
     parser.add_argument(
         "--no-color", action="store_true",
         help="Disable colored output.")
@@ -382,11 +385,12 @@ def main():
         sys.exit(1)
 
     version = args.version or get_minimum_godot_version()
-    print(f"Using Redot binary {redot_path}")
+    print(f"Using Redot binary {redot_path.name}")
 
     update_libraries()
-    clean_godot_cache()
-    import_project()
+    if not args.skip_import:
+        clean_godot_cache()
+        import_project()
 
     jobs = max(1, min(args.jobs, MAX_JOBS))
 
