@@ -9,7 +9,9 @@ IF (cleanup_position EQUAL -1)
     MESSAGE(FATAL_ERROR "Pinned redot-cpp Variant cleanup changed; review the forward-compatibility patch")
 ENDIF ()
 STRING(REPLACE "${old_cleanup}" "${new_cleanup}" variant_code "${variant_code}")
-# Keep it out of _generated/, whose sources are globbed into the extension target.
+# Keep it out of _generated/, whose sources are globbed into the extension target, and
+# drop the copy earlier revisions wrote there so reused build trees do not link it twice.
+FILE(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/_generated/redot_cpp_variant.cpp")
 SET(patched_variant "${CMAKE_CURRENT_BINARY_DIR}/redot-forward-compat/variant.cpp")
 FILE(CONFIGURE OUTPUT "${patched_variant}" CONTENT "${variant_code}" @ONLY)
 GET_TARGET_PROPERTY(binding_sources godot-cpp SOURCES)

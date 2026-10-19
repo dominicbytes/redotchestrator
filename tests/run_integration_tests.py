@@ -42,13 +42,18 @@ VERSION_TIMEOUT_SECONDS = 30
 
 # Official Redot 26.3-stable leaks rendering and text-server RIDs when the headless
 # editor shuts down after an import, with or without this addon installed. Only these
-# exact shutdown lines are tolerated, only on that engine line and only for the import
-# step; any other import output still fails the run. Drop this once a fixed engine ships.
+# exact shutdown lines are tolerated, only on official 26.3-stable builds and only for the
+# import step; any other import output still fails the run. Drop this once a fixed engine ships.
 KNOWN_IMPORT_SHUTDOWN_LEAKS = {
-    "26.3.stable": [
+    "26.3.stable.official.": [
         (re.compile(r'WARNING: \d+ RIDs of type "(Canvas|CanvasItem)" were leaked\.'),
          re.compile(r'at: _free_rids \(servers/rendering/renderer_canvas_cull\.cpp:\d+\)')),
-        (re.compile(r"ERROR: \d+ RID allocations of type '[A-Za-z0-9_]+' were leaked at exit\."), None),
+        (re.compile(r"ERROR: \d+ RID allocations of type '("
+                    r"N16RendererViewport8ViewportE"
+                    r"|PN13RendererDummy14TextureStorage12DummyTextureE"
+                    r"|PN18TextServerAdvanced22ShapedTextDataAdvancedE"
+                    r"|PN18TextServerAdvanced12FontAdvancedE"
+                    r")' were leaked at exit\."), None),
         (re.compile(r"WARNING: ObjectDB instances leaked at exit \(run with --verbose for details\)\."),
          re.compile(r"at: cleanup \(core/object/object\.cpp:\d+\)")),
     ],
@@ -119,7 +124,7 @@ def query_engine_version():
             capture_output=True,
             text=True,
             timeout=VERSION_TIMEOUT_SECONDS)
-    except subprocess.TimeoutExpired:
+    except (OSError, subprocess.TimeoutExpired):
         return ""
     return result.stdout.strip().splitlines()[-1].strip() if result.stdout.strip() else ""
 
