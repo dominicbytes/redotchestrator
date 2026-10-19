@@ -941,8 +941,13 @@ Error OrchestrationBinaryParser::rename_dependencies(const String& p_path, const
     if (format > OrchestrationFormat::FORMAT_VERSION) {
         ERR_FAIL_V_MSG(ERR_FILE_UNRECOGNIZED,
             vformat("File '%s' cannot be loaded as it uses a format version (%d) that is newer than version %d",
-                local_path, format));
+                p_path, format, OrchestrationFormat::FORMAT_VERSION));
     }
+
+    // Formats before 3 have neither the flags word nor an external resource table to rewrite.
+    ERR_FAIL_COND_V_MSG(format < 3, ERR_UNAVAILABLE,
+        vformat("File '%s' uses format version %d, which predates external resource dependencies.", p_path, format));
+    fw->store_32(format);
 
     // Godot version
     fw->store_32(file->get_32());
@@ -975,12 +980,12 @@ Error OrchestrationBinaryParser::rename_dependencies(const String& p_path, const
     uint32_t string_table_size = file->get_32();
     fw->store_32(string_table_size);
     for (uint32_t i = 0; i < string_table_size; i++) {
-        OrchestrationBinaryFormat::save_unicode_string(fw, _read_unicode_string());
+        OrchestrationBinaryFormat::save_unicode_string(fw, OrchestrationBinaryFormat::read_unicode_string(file));
     }
 
     // External Resources
     uint32_t external_resource_count = file->get_32();
-    file->store_32(external_resource_count);
+    fw->store_32(external_resource_count);
     for (uint32_t i = 0; i < external_resource_count; i++) {
         String type = OrchestrationBinaryFormat::read_unicode_string(file);
         String path = OrchestrationBinaryFormat::read_unicode_string(file);
@@ -1022,7 +1027,7 @@ Error OrchestrationBinaryParser::rename_dependencies(const String& p_path, const
     const int64_t delta = static_cast<int64_t>(fw->get_position()) - static_cast<int64_t>(file->get_position());
 
     uint32_t internal_resource_count = file->get_32();
-    file->store_32(internal_resource_count);
+    fw->store_32(internal_resource_count);
     for (uint32_t i = 0; i < internal_resource_count; i++) {
         const String path = OrchestrationBinaryFormat::read_unicode_string(file);
         uint64_t offset = file->get_64();
