@@ -51,10 +51,10 @@ func _ready() -> void:
 	next_button.visible = false
 	visible = false
 	
-	## If the mouse is currently hidden, make it visible until the
+	## If the mouse is currently hidden or captured, make it visible until the
 	## player makes a selection in the dialog scene
 	_mouse_mode = Input.mouse_mode
-	if _mouse_mode == Input.MOUSE_MODE_HIDDEN:
+	if _mouse_mode in [Input.MOUSE_MODE_HIDDEN, Input.MOUSE_MODE_CAPTURED]:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE		
 	
 	## Setup what to do if there are no options and the next button
@@ -92,6 +92,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func show_message(speaker_name: String, message: String, choices: Dictionary) -> void:
 	speaker.text = speaker_name
 	speaker_text.text = message
+	speaker_text.visible_characters = 0
 	_current_choices = choices
 	await get_tree().process_frame
 	
@@ -130,8 +131,8 @@ func _disable_player_movement() -> void:
 		Input.action_release(action)
 
 func _dialogue_finished():
-	## If the mouse was previously hidden, restore state
-	if _mouse_mode == Input.MOUSE_MODE_HIDDEN:
+	## If the mouse was previously hidden or captured, restore state
+	if _mouse_mode in [Input.MOUSE_MODE_HIDDEN, Input.MOUSE_MODE_CAPTURED]:
 		Input.mouse_mode = _mouse_mode
 	show_message_finished.emit()	
 	queue_free()
