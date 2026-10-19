@@ -158,10 +158,13 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
     const Ref<Orchestration> orchestration = p_resource;
     ERR_FAIL_COND_V_MSG(!orchestration.is_valid(), ERR_INVALID_PARAMETER, "Resource is not an orchestration");
 
+    _decode_and_set_flags(p_path, p_flags);
+
+    // Resolve the UID before opening the file for writing truncates the existing one.
+    const int64_t uid = _get_resource_id_for_path(_path, true);
+
     const Ref<FileAccess> file = FileAccess::open(p_path, FileAccess::WRITE);
     ERR_FAIL_COND_V_MSG(file.is_null(), ERR_FILE_CANT_OPEN, "Cannot write file '" + p_path + "'.");
-
-    _decode_and_set_flags(p_path, p_flags);
 
     // Walk the resource and gather all resource details
     _find_resources(p_resource, true);
@@ -175,7 +178,7 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
         icon_path,
         _saved_resources.size() + _external_resources.size(),
         OrchestrationFormat::FORMAT_VERSION,
-        _get_resource_id_for_path(_path, true)));
+        uid));
 
     #ifdef TOOLS_ENABLED
     // Keep order from cached ids

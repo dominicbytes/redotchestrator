@@ -649,6 +649,9 @@ Error OrchestrationBinarySerializer::save(const Ref<Resource>& p_resource, const
     const Ref<Orchestration> orchestration = p_resource;
     ERR_FAIL_COND_V_MSG(!orchestration.is_valid(), ERR_INVALID_PARAMETER, "Resource is not an orchestration");
 
+    // Resolve the UID before opening the file for writing truncates the existing one.
+    const int64_t uid = _get_resource_id_for_path(p_path, true);
+
     const Ref<FileAccess> file = FileAccess::open_compressed(p_path, FileAccess::WRITE);
     ERR_FAIL_COND_V_MSG(file.is_null(), ERR_FILE_CANT_WRITE, "Cannot write file '" + p_path + "'.");
     _file = file;
@@ -708,7 +711,6 @@ Error OrchestrationBinarySerializer::save(const Ref<Resource>& p_resource, const
     _file->store_32(flags);
 
     if (flags & OrchestrationBinaryFormat::FORMAT_FLAG_UIDS) {
-        int64_t uid = _get_resource_id_for_path(p_path, true);
         _file->store_64(uid);
     }
     if (!global_name.is_empty()) {

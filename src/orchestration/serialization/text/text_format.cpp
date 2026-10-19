@@ -16,9 +16,16 @@
 //
 #include "orchestration/serialization/text/text_format.h"
 
+#include <godot_cpp/classes/resource_saver.hpp>
 #include <godot_cpp/classes/resource_uid.hpp>
 
 int64_t OrchestrationTextFormat::get_resource_id_for_path(const String& p_path, bool p_generate) {
+    // In the editor this consults the file system cache first, the same as the engine's own savers.
+    const int64_t id = ResourceSaver::get_singleton()->get_resource_id_for_path(p_path, false);
+    if (id != ResourceUID::INVALID_ID) {
+        return id;
+    }
+
     int64_t fallback = ResourceLoader::get_singleton()->get_resource_uid(p_path);
     if (fallback != ResourceUID::INVALID_ID) {
         return fallback;
