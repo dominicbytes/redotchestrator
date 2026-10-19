@@ -65,8 +65,6 @@ struct OrchestratorVersion {
     /// @return true if these are equal
     bool is_equal(const OrchestratorVersion& p_other) const;
 
-    bool is_compatible(const OrchestratorVersion& p_other) const;
-
     /// Converts version to a string
     /// @return the version formatted as a string
     String to_string() const;
@@ -75,7 +73,8 @@ struct OrchestratorVersion {
 /// A manifest record for outlining Redot compatibility and release asset integrity.
 struct OrchestratorReleaseManifest {
     String name;                  //! Redotchestrator release name
-    String redot_compatibility;   //! Redot's compatibility expectation
+    String redot_compatibility;   //! Minimum Redot runtime version
+    String redot_compatibility_maximum; //! Optional inclusive tested upper bound
     String asset_name;            //! Exact GitHub release asset name
     String sha256;                //! Expected SHA-256 digest
     int64_t asset_size{ 0 };      //! Expected asset size in bytes
@@ -128,7 +127,7 @@ class OrchestratorUpdaterVersionPicker : public ConfirmationDialog {
     };
 
     Vector<ReleaseItem> _releases;
-    OrchestratorVersion _godot_version;
+    String _redot_version;
     Tree* _tree = nullptr;
     Button* _show_release_notes = nullptr;
     ProgressBar* _progress = nullptr;

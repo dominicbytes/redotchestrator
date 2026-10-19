@@ -17,6 +17,9 @@
 //
 #pragma once
 
+#include <array>
+#include <charconv>
+#include <cstdint>
 #include <string_view>
 
 namespace redotchestrator::updater {
@@ -187,6 +190,44 @@ namespace redotchestrator::updater {
             component_start = component_end + 1;
         }
         return true;
+    }
+
+    inline bool parse_redot_version(std::string_view p_version, std::array<uint32_t, 3>& r_version) {
+        if (!is_valid_redot_compatibility(p_version)) {
+            return false;
+        }
+        size_t start = 1;
+        for (uint32_t& component : r_version) {
+            const size_t separator = p_version.find('.', start);
+            const size_t end = separator == std::string_view::npos ? p_version.size() : separator;
+            const auto result = std::from_chars(p_version.data() + start, p_version.data() + end, component);
+            if (result.ec != std::errc()) {
+                return false;
+            }
+            start = end + 1;
+        }
+        return r_version[0] > 0;
+    }
+
+    inline bool is_valid_redot_range(std::string_view p_minimum, std::string_view p_maximum) {
+        std::array<uint32_t, 3> minimum{}, maximum{};
+        return parse_redot_version(p_minimum, minimum)
+            && (p_maximum.empty() || (parse_redot_version(p_maximum, maximum)
+                && minimum[0] == maximum[0] && minimum <= maximum));
+    }
+
+    inline bool is_redot_version_supported(std::string_view p_minimum, std::string_view p_maximum,
+            std::string_view p_current) {
+        std::array<uint32_t, 3> minimum{}, maximum{}, current{};
+        if (!is_valid_redot_range(p_minimum, p_maximum)
+            || !parse_redot_version(p_minimum, minimum) || !parse_redot_version(p_current, current)) {
+            return false;
+        }
+        // Legacy manifests without a maximum retain their original minor-line boundary.
+        if (p_maximum.empty()) {
+            return current[0] == minimum[0] && current[1] == minimum[1] && current >= minimum;
+        }
+        return parse_redot_version(p_maximum, maximum) && current >= minimum && current <= maximum;
     }
 
     inline bool is_valid_plugin_asset_name(std::string_view p_name) {
