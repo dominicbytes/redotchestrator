@@ -1515,7 +1515,7 @@ Error OScriptVariantParser::parse_value(Stream* p_stream, Token& p_token, int& p
 
                 Vector4* w = array.ptrw();
                 for (int i = 0; i < size; i++)
-                    w[i] = Vector4(args[i * 3 + 0], args[i * 3 + 1], args[i * 3 + 2], args[i * 3 + 3]);
+                    w[i] = Vector4(args[i * 4 + 0], args[i * 4 + 1], args[i * 4 + 2], args[i * 4 + 3]);
             }
             r_value = array;
         }
