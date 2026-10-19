@@ -48,6 +48,14 @@ void OrchestrationBinarySerializer::_save_unicode_string(const String& p_value, 
 }
 
 void OrchestrationBinarySerializer::_write_variant(const Variant& p_value, HashMap<Ref<Resource>, uint32_t>& p_resource_map, const PropertyInfo& p_hint) { // NOLINT
+    if (static_cast<int>(p_value.get_type()) == OrchestrationFormat::VARIANT_TYPE_STRUCT) {
+        // Struct values need the StructInfo API, which the shared 26.2 bindings do not expose.
+        // Store null so the rest of the file stays readable, and fail the save so the loss is reported.
+        _file->store_32(OrchestrationBinaryFormat::VARIANT_NIL);
+        _write_error = ERR_UNAVAILABLE;
+        ERR_FAIL_MSG(vformat("Unable to serialize a struct value%s, it is saved as null.", p_hint.name.is_empty() ? String() : " for " + p_hint.name));
+    }
+
     switch (p_value.get_type()) {
         case Variant::NIL: {
             _file->store_32(OrchestrationBinaryFormat::VARIANT_NIL);
@@ -506,6 +514,9 @@ void OrchestrationBinarySerializer::_write_variant(const Variant& p_value, HashM
             break;
         }
         default: {
+            // Keep the stream aligned for the values that follow.
+            _file->store_32(OrchestrationBinaryFormat::VARIANT_NIL);
+            _write_error = ERR_INVALID_DATA;
             ERR_FAIL_MSG(vformat("Unable to serialize property type %s with name %s", p_value.get_type(), p_hint.name));
         }    
     }
@@ -883,6 +894,10 @@ Error OrchestrationBinarySerializer::save(const Ref<Resource>& p_resource, const
 
     if (_file->get_error() != OK && _file->get_error() != ERR_FILE_EOF) {
         return ERR_CANT_CREATE;
+    }
+
+    if (_write_error != OK) {
+        return ERR_FILE_CANT_WRITE;
     }
 
     #ifdef TOOLS_ENABLED

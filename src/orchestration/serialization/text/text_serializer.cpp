@@ -242,6 +242,8 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
         file->store_line(String());
     }
 
+    Error write_error = OK;
+
     HashSet<String> used_unique_ids;
     for (List<Ref<Resource>>::Element* E = _saved_resources.front(); E ; E = E->next()) {
         const Ref<Resource> res = E->get();
@@ -335,7 +337,10 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
             }
 
             String vars;
-            OScriptVariantWriter::write_to_string(value, vars, _write_resources, this);
+            if (const Error err = OScriptVariantWriter::write_to_string(value, vars, _write_resources, this)) {
+                // The writer stores null for what it cannot encode, so the file stays parseable.
+                write_error = err;
+            }
             file->store_line(StringUtils::property_name_encode(pi.name) + " = " + vars);
         }
 
@@ -347,6 +352,10 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
 
     if (file->get_error() != OK && file->get_error() != ERR_FILE_EOF) {
         return ERR_CANT_CREATE;
+    }
+
+    if (write_error != OK) {
+        return ERR_FILE_CANT_WRITE;
     }
 
     #ifdef TOOLS_ENABLED
