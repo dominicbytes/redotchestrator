@@ -1,0 +1,9 @@
+[orchestration type="OScript" load_steps=2 format=4]
+[obj type="OScriptGraph" id="G"]
+graph_name = &"broken"
+flags = 22
+nodes = Array[int]([])
+functions = Array[int]([])
+[resource]
+base_type = &"Node"
+graphs = Array[OScriptGraph]([SubResource("G")])

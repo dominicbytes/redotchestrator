@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/errors/b_empty_function_graph.torch" id="1"]
+
+[node name="InvalidFunction" type="Node"]
+script = ExtResource("1")

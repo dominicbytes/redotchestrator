@@ -3071,7 +3071,12 @@ OScriptParser::ClassNode* OScriptParser::build_class(Orchestration* p_orchestrat
     for (const Ref<OScriptGraph>& graph : p_orchestration->get_graphs()) {
         if (graph->get_flags().has_flag(OScriptGraph::GF_FUNCTION)) {
             // This physical function
-            const Ref<OScriptFunction> function = graph->get_functions()[0];
+            const Vector<Ref<OScriptFunction>> functions = graph->get_functions();
+            if (functions.is_empty()) {
+                push_error("Function graph has no function entry.");
+                continue;
+            }
+            const Ref<OScriptFunction> function = functions[0];
             if (function.is_valid() && function->get_owning_node_id() >= 0) {
                 FunctionNode* node = build_function(function, graph);
                 clazz->add_member(node);
@@ -3294,6 +3299,12 @@ OScriptParser::ParameterNode* OScriptParser::build_parameter(const PropertyInfo&
 
 OScriptParser::TypeNode* OScriptParser::build_type(const PropertyInfo& p_property) {
     TypeNode* type = alloc_node<TypeNode>();
+
+    // Redot 26.3 adds Struct at 39, which is the sentinel in the 26.2 bindings.
+    if (Variant::VARIANT_MAX == 39 && static_cast<int>(p_property.type) == 39) {
+        push_error("Struct is not supported by this build using Redot 26.2 bindings.");
+        return type;
+    }
 
     if (p_property.usage & PROPERTY_USAGE_CLASS_IS_ENUM || p_property.usage & PROPERTY_USAGE_CLASS_IS_BITFIELD) {
         if (p_property.class_name.contains(".")) {
