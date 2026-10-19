@@ -90,6 +90,34 @@ class PackageReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Descriptor library is missing"):
                 PACKAGE_RELEASE.validate_distribution(distribution)
 
+    def test_desktop_library_directory_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            distribution = self.make_distribution(Path(temporary))
+            library = distribution / "addons/orchestrator/bin/plugin.so"
+            library.unlink()
+            library.mkdir()
+            (library / "not-a-library.txt").write_bytes(b"payload")
+            with self.assertRaisesRegex(ValueError, "Descriptor library is missing"):
+                PACKAGE_RELEASE.validate_distribution(distribution)
+
+    def test_only_ios_xcframework_features_allow_bundles(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            distribution = self.make_distribution(Path(temporary))
+            addon = distribution / "addons/orchestrator"
+            PACKAGE_RELEASE.validate_distribution(distribution)
+            descriptor = addon / "orchestrator.gdextension"
+            original = descriptor.read_text()
+            for feature in ("macos", "ios.extra"):
+                with self.subTest(feature=feature):
+                    lines = [line for line in original.splitlines() if not line.startswith(feature + "=")]
+                    descriptor.write_text("\n".join(lines) + f'\n{feature}="res://addons/orchestrator/bin/ios.xcframework"\n')
+                    with self.assertRaises(ValueError):
+                        PACKAGE_RELEASE.validate_distribution(distribution)
+            descriptor.write_text(original.replace("bin/ios.xcframework", "bin/ios.bundle"))
+            (addon / "bin/ios.xcframework").rename(addon / "bin/ios.bundle")
+            with self.assertRaises(ValueError):
+                PACKAGE_RELEASE.validate_distribution(distribution)
+
     def test_descriptor_backslash_and_noncanonical_paths_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             distribution = self.make_distribution(Path(temporary))

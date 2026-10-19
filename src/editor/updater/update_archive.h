@@ -7,6 +7,7 @@
 #include <span>
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 namespace redotchestrator::updater {
@@ -24,6 +25,19 @@ namespace redotchestrator::updater {
         "ASSET_LICENSES.md", "AUTHORS.md", "CHANGELOG.md", "LICENSE", "MODIFICATIONS.md", "README.md",
         "THIRD_PARTY_LICENSES/redot-cpp-LICENSE.md"
     };
+
+    inline bool has_update_library(const std::unordered_map<std::string, uint32_t>& p_files,
+            std::string_view p_feature, const std::string& p_path) {
+        const auto file = p_files.find(p_path);
+        if (file != p_files.end() && file->second > 0) { return true; }
+        if ((p_feature != "ios" && p_feature != "ios.debug") || !p_path.ends_with(".xcframework")) {
+            return false;
+        }
+        for (const auto& [path, size] : p_files) {
+            if (path.starts_with(p_path + "/") && size > 0) { return true; }
+        }
+        return false;
+    }
 
     struct ArchiveEntry {
         std::string path;

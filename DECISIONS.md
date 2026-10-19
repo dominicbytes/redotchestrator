@@ -92,6 +92,17 @@
 - Rationale: repository-only URL filtering does not prevent tag/asset confusion, corrupted downloads, path traversal, or partial replacement.
 - Consequence: unsafe metadata is omitted; unsafe ZIP entries are rejected; installation stages beside the addon, backs up the old directory, activates by rename, and rolls back on activation failure.
 
+- Addendum (2026-10-19): self-update refuses pre-existing symlinks or junctions
+  between the project root and addon, staging or backup directories; projects
+  with a linked `addons` directory must update manually. These checks are defence
+  in depth against accidental or pre-existing links. An active local process
+  running as the same user with project write access can already replace addon
+  binaries directly, so mid-install directory or junction substitution by that
+  process is outside the updater threat model. Windows staging activation keeps
+  its directory handle through the rename; portable checks do not promise
+  protection against an active same-user attacker. The interruption exactly
+  between the backup and activation renames remains a manual-recovery limitation.
+
 ## ADR-0020: Bound Windows VM recursion without changing normal execution
 
 - Date: 2026-08-11

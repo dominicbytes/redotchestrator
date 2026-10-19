@@ -108,7 +108,7 @@ def addon_from_distribution(distribution: Path) -> Path:
     return addon
 
 
-def descriptor_library_paths(addon: Path) -> list[Path]:
+def descriptor_library_paths(addon: Path) -> list[tuple[str, Path]]:
     descriptor = addon / "orchestrator.gdextension"
     if not descriptor.is_file():
         raise ValueError(f"Missing GDExtension descriptor: {descriptor}")
@@ -127,7 +127,7 @@ def descriptor_library_paths(addon: Path) -> list[Path]:
         )
 
     expected_prefix = "res://addons/orchestrator/"
-    paths: list[Path] = []
+    paths: list[tuple[str, Path]] = []
     for feature, raw_path in config["libraries"].items():
         value = raw_path.strip()
         if len(value) < 2 or value[0] != '"' or value[-1] != '"' or '"' in value[1:-1]:
@@ -142,7 +142,7 @@ def descriptor_library_paths(addon: Path) -> list[Path]:
         library = addon.joinpath(*relative.parts)
         if not library.resolve().is_relative_to(addon.resolve()):
             raise ValueError("Descriptor library escapes the addon")
-        paths.append(library)
+        paths.append((feature, library))
     return paths
 
 
@@ -189,9 +189,10 @@ def validate_distribution(distribution: Path) -> tuple[Path, list[Path]]:
         raise ValueError("Addon contains no files")
 
     emitted = {path.relative_to(addon).as_posix() for path in files}
-    for library in descriptor_library_paths(addon):
+    for feature, library in descriptor_library_paths(addon):
         relative = library.relative_to(addon).as_posix()
-        if relative not in emitted and not any(name.startswith(relative + "/") for name in emitted):
+        bundle = feature in {"ios", "ios.debug"} and relative.endswith(".xcframework")
+        if relative not in emitted and not (bundle and any(name.startswith(relative + "/") for name in emitted)):
             raise ValueError(f"Descriptor library is missing or has mismatched case: {relative}")
         if not library.exists():
             raise ValueError(f"Descriptor library is missing: {library.relative_to(addon)}")

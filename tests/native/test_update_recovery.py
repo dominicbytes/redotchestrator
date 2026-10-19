@@ -16,6 +16,41 @@ SPEC.loader.exec_module(PACKAGE)
 
 @unittest.skipUnless(os.environ.get("REDOT_BIN"), "REDOT_BIN is required for startup recovery tests")
 class UpdateRecoveryTests(unittest.TestCase):
+    def test_linked_addons_refuses_startup_cleanup_and_recovery(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "project"
+            root.mkdir()
+            payload = Path(temporary) / "payload"
+            shutil.copytree(REPO / "project/addons/orchestrator", payload / "orchestrator",
+                            ignore=shutil.ignore_patterns("*.exp", "*.lib", "*.pdb"))
+            (root / "project.godot").write_text('[application]\nconfig/name="Linked addons test"\n')
+            markers = []
+            for name in (".redotchestrator-update-stage", ".redotchestrator-update-backup"):
+                directory = payload / name
+                directory.mkdir()
+                marker = directory / "preserve.txt"
+                marker.write_text("user content")
+                markers.append(marker)
+            link = root / "addons"
+            if os.name == "nt":
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(payload)],
+                               capture_output=True, check=True, timeout=30)
+            else:
+                link.symlink_to(payload, target_is_directory=True)
+            try:
+                result = subprocess.run([os.environ["REDOT_BIN"], "--headless", "--audio-driver", "Dummy",
+                                         "--quit-after", "600", "--path", str(root), "--import"],
+                                        capture_output=True, text=True, timeout=120)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn("without links or junctions. Update manually.", result.stderr)
+                self.assertTrue(all(marker.read_text() == "user content" for marker in markers))
+                self.assertNotIn("ERROR:", result.stderr)
+            finally:
+                if os.name == "nt":
+                    os.rmdir(link)
+                else:
+                    link.unlink()
+
     def test_recovery_retains_evidence_until_the_new_version_starts(self):
         current = PACKAGE.expected_release_tag(REPO / "VERSION")
         for state in ("new_started", "old_started", "orphan", "before_backup"):
