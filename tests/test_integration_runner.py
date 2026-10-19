@@ -91,6 +91,18 @@ class ImportResultTests(unittest.TestCase):
                 RUNNER.import_project()
 
 
+class OutputNormalizationTests(unittest.TestCase):
+    def test_unix_warning_indentation_matches_windows(self):
+        windows = ("WARNING: orphan\n   at: _fix_orphans (src\\orchestration\\orchestration.cpp:224)\n"
+                   "   GDScript backtrace (most recent call first):\n       [0] _ready (res://a.gd:3)")
+        unix = ("WARNING: orphan\n     at: _fix_orphans (src/orchestration/orchestration.cpp:230)\n"
+                "     GDScript backtrace (most recent call first):\n         [0] _ready (res://a.gd:3)")
+        self.assertEqual(RUNNER.normalize_cpp_lines(windows), RUNNER.normalize_cpp_lines(unix))
+
+    def test_message_text_differences_are_kept(self):
+        self.assertNotEqual(RUNNER.normalize_cpp_lines("ERROR: one"), RUNNER.normalize_cpp_lines("ERROR: two"))
+
+
 class SceneSelectionTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

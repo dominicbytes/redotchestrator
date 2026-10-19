@@ -211,6 +211,9 @@ def normalize_cpp_lines(text):
     text = re.sub(r'\([^()\n]*?/(src/[^():\n]+\.cpp)(?::\d+)?\)', r'(\1)', text)
     text = re.sub(r'(\w+\.cpp):\d+', r'\1', text)
     text = re.sub(r'(?m)^(\s*at: )(?:[A-Za-z_]\w*::)+([~A-Za-z_]\w*)( \()', r'\1\2\3', text)
+    # The Unix logger indents the location and backtrace lines of a warning
+    # two columns further than those of an error; Windows indents both alike.
+    text = re.sub(r'(?m)^[ \t]+', '   ', text)
     return text
 
 def validate_output(source, result, elapsed):

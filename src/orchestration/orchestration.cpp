@@ -30,6 +30,7 @@
 #include "script/script_server.h"
 
 #include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/templates/local_vector.hpp>
 
 void Orchestration::ConnectionCache::_rebuild() const {
     if (!_dirty) {
@@ -74,6 +75,7 @@ void Orchestration::_set_nodes_internal(const TypedArray<OScriptNode>& p_nodes) 
     _nodes.clear();
     for (int i = 0; i < p_nodes.size(); i++) {
         Ref<OScriptNode> node = p_nodes[i];
+        ERR_CONTINUE_MSG(node.is_null(), vformat("Ignoring invalid node entry %d in orchestration.", i));
         node->_orchestration = this;
         _nodes[node->get_id()] = node;
     }
@@ -92,7 +94,10 @@ TypedArray<int> Orchestration::_get_connections_internal() const {
 
 void Orchestration::_set_connections_internal(const TypedArray<int>& p_connections) {
     _connection_cache.clear();
-    for (int i = 0; i < p_connections.size(); i += 4) {
+    if (p_connections.size() % 4 != 0) {
+        ERR_PRINT("Connection list is corrupt, its size is not a multiple of 4. Ignoring the incomplete connection.");
+    }
+    for (int i = 0; i + 3 < p_connections.size(); i += 4) {
         OScriptConnection connection;
         connection.from_node = p_connections[i];
         connection.from_port = p_connections[i + 1];
@@ -113,6 +118,7 @@ TypedArray<OScriptGraph> Orchestration::_get_graphs_internal() const {
 void Orchestration::_set_graphs_internal(const TypedArray<OScriptGraph>& p_graphs) {
     for (int i = 0; i < p_graphs.size(); i++) {
         Ref<OScriptGraph> graph = p_graphs[i];
+        ERR_CONTINUE_MSG(graph.is_null(), vformat("Ignoring invalid graph entry %d in orchestration.", i));
         graph->_orchestration = this;
         _graphs[graph->get_graph_name()] = graph;
     }
@@ -130,6 +136,7 @@ void Orchestration::_set_functions_internal(const TypedArray<OScriptFunction>& p
     _functions.clear();
     for (int i = 0; i < p_functions.size(); i++) {
         Ref<OScriptFunction> function = p_functions[i];
+        ERR_CONTINUE_MSG(function.is_null(), vformat("Ignoring invalid function entry %d in orchestration.", i));
         function->_orchestration = this;
         _functions[function->get_function_name()] = function;
     }
@@ -147,6 +154,7 @@ void Orchestration::_set_variables_internal(const TypedArray<OScriptVariable>& p
     _variables.clear();
     for (int i = 0; i < p_variables.size(); i++) {
         Ref<OScriptVariable> variable = p_variables[i];
+        ERR_CONTINUE_MSG(variable.is_null(), vformat("Ignoring invalid variable entry %d in orchestration.", i));
         variable->_orchestration = this;
         _variables[variable->get_variable_name()] = variable;
     }
@@ -164,12 +172,16 @@ void Orchestration::_set_signals_internal(const TypedArray<OScriptSignal>& p_sig
     _signals.clear();
     for (int i = 0; i < p_signals.size(); i++) {
         Ref<OScriptSignal> signal = p_signals[i];
+        ERR_CONTINUE_MSG(signal.is_null(), vformat("Ignoring invalid signal entry %d in orchestration.", i));
         signal->_orchestration = this;
         _signals[signal->get_signal_name()] = signal;
     }
 }
 
 void Orchestration::_fix_orphans() {
+    // Removal is deferred until after the loop, erasing would invalidate the iterator
+    LocalVector<int> orphans;
+
     // Iterate nodes and check orphan status
     for (const KeyValue<int, Ref<OScriptNode>>& E : _nodes) {
         bool orphaned = true;
@@ -208,7 +220,11 @@ void Orchestration::_fix_orphans() {
 
         const String path = _self ? _self->get_path() : _script_path;
         WARN_PRINT(vformat("Removed orphan node %d (%s) from script %s.", E.key, E.value->get_class(), path));
-        _nodes.erase(E.key);
+        orphans.push_back(E.key);
+    }
+
+    for (const int orphan : orphans) {
+        _nodes.erase(orphan);
     }
 
     {
@@ -221,7 +237,9 @@ void Orchestration::_fix_orphans() {
         for (const OScriptConnection C : removals) {
             String extra = "";
             if (OS::get_singleton()->has_feature("editor")) {
-                extra += " Please save orchestration '" + _self->get_path() + "' to apply changes.";
+                // The script is not yet assigned while the orchestration is being loaded
+                const String path = _self ? _self->get_path() : _script_path;
+                extra += " Please save orchestration '" + path + "' to apply changes.";
             }
 
             WARN_PRINT(vformat("Removing orphan connection for " + C.to_string() + ", either the source or target node no longer exists." + extra));

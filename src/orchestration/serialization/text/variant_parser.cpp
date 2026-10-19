@@ -29,6 +29,7 @@
 #include "common/string_utils.h"
 #include "common/version.h"
 #include "core/godot/object/script_language.h"
+#include "orchestration/serialization/format.h"
 
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/script.hpp>
@@ -712,6 +713,20 @@ Error OScriptVariantParser::_parse_construct(Stream* p_stream, Vector<T>& r_cons
 
 Error OScriptVariantParser::parse_value(Stream* p_stream, Token& p_token, int& p_line, Variant& r_value, String& r_err_string, ResourceParser* p_res_parser)
 {
+    // Containers recurse through here, so bound the depth to fail on crafted files rather than overflow the stack.
+    if (p_stream->depth >= OrchestrationFormat::MAX_PARSE_DEPTH)
+    {
+        r_err_string = "Value nesting is too deep";
+        return ERR_PARSE_ERROR;
+    }
+
+    struct DepthGuard
+    {
+        uint32_t& depth;
+        explicit DepthGuard(uint32_t& p_depth) : depth(p_depth) { depth++; }
+        ~DepthGuard() { depth--; }
+    } depth_guard(p_stream->depth);
+
     if (p_token.type == TK_CURLY_BRACKET_OPEN)
     {
         Dictionary dict;
@@ -1515,7 +1530,7 @@ Error OScriptVariantParser::parse_value(Stream* p_stream, Token& p_token, int& p
 
                 Vector4* w = array.ptrw();
                 for (int i = 0; i < size; i++)
-                    w[i] = Vector4(args[i * 3 + 0], args[i * 3 + 1], args[i * 3 + 2], args[i * 3 + 3]);
+                    w[i] = Vector4(args[i * 4 + 0], args[i * 4 + 1], args[i * 4 + 2], args[i * 4 + 3]);
             }
             r_value = array;
         }
@@ -1937,6 +1952,18 @@ bool OScriptVariantWriter::_is_resource_file(const String& p_path)
 
 Error OScriptVariantWriter::write(const Variant& p_variant, StoreStringFunction p_store_string, void* p_store_userdata, EncodeResourceFunction p_encode_resource, void* p_encode_userdata, int p_recursion_count)
 {
+    if (static_cast<int>(p_variant.get_type()) == OrchestrationFormat::VARIANT_TYPE_STRUCT)
+    {
+        // Struct values need the StructInfo API, which the shared 26.2 bindings do not expose.
+        // Store null so the output stays parseable, and report the loss to the caller.
+        p_store_string(p_store_userdata, "null");
+        ERR_PRINT("Unable to serialize a struct value, it is saved as null.");
+        return ERR_UNAVAILABLE;
+    }
+
+    // Errors from nested values are reported once the enclosing value is complete.
+    Error err = OK;
+
     switch (p_variant.get_type())
     {
         case Variant::NIL:
@@ -2194,7 +2221,8 @@ Error OScriptVariantWriter::write(const Variant& p_variant, StoreStringFunction 
                         p_store_string(p_store_userdata, ",");
 
                     p_store_string(p_store_userdata, "\"" + property.name + "\":");
-                    write(obj->get(property.name), p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count);
+                    if (const Error child_err = write(obj->get(property.name), p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count))
+                        err = child_err;
                 }
             }
             p_store_string(p_store_userdata, ")\n");
@@ -2225,9 +2253,11 @@ Error OScriptVariantWriter::write(const Variant& p_variant, StoreStringFunction 
                 for (int i = 0; i < size; i++)
                 {
                     const Variant& key = keys[i];
-                    write(key, p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count);
+                    if (const Error child_err = write(key, p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count))
+                        err = child_err;
                     p_store_string(p_store_userdata, ": ");
-                    write(dict[key], p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count);
+                    if (const Error child_err = write(dict[key], p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count))
+                        err = child_err;
                     if ((i + 1) < size)
                         p_store_string(p_store_userdata, ",\n");
                     else
@@ -2287,7 +2317,8 @@ Error OScriptVariantWriter::write(const Variant& p_variant, StoreStringFunction 
                 {
                     if (i > 0)
                         p_store_string(p_store_userdata, ", ");
-                    write(array[i], p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count);
+                    if (const Error child_err = write(array[i], p_store_string, p_store_userdata, p_encode_resource, p_encode_userdata, p_recursion_count))
+                        err = child_err;
                 }
                 p_store_string(p_store_userdata, "]");
             }
@@ -2439,11 +2470,13 @@ Error OScriptVariantWriter::write(const Variant& p_variant, StoreStringFunction 
         }
         default:
         {
+            // Keep the output parseable for the values that follow.
+            p_store_string(p_store_userdata, "null");
             ERR_PRINT("Unknown variant type");
             return ERR_BUG;
         }
     }
-    return OK;
+    return err;
 }
 
 static Error _write_to_str(void* p_userdata, const String& p_string)

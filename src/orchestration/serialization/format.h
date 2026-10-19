@@ -21,4 +21,11 @@
 struct OrchestrationFormat {
     // Format 4: Introduction of OScriptNodeReroute nodes
     static inline uint32_t FORMAT_VERSION = 4;
+
+    // Maximum nesting of arrays, dictionaries and objects accepted by the parsers.
+    // The writers stop at about 100 levels, so only corrupt or crafted files go deeper.
+    static constexpr uint32_t MAX_PARSE_DEPTH = 256;
+
+    // Variant::STRUCT on Redot 26.3 and later. The 26.2 bindings predate it, so it is matched by value.
+    static constexpr int VARIANT_TYPE_STRUCT = 39;
 };

@@ -40,6 +40,7 @@ class OrchestrationBinarySerializer : public OrchestrationSerializer {
     Vector<StringName> _strings;
 
     bool _big_endian = false;
+    Error _write_error = OK;
 
     uint32_t _get_string_index(const String& p_value);
 

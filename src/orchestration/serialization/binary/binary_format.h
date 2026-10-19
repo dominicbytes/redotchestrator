@@ -87,5 +87,9 @@ struct OrchestrationBinaryFormat {
 
     // Helper methods used by Parser and Serializer
     static void save_unicode_string(const Ref<FileAccess>& p_file, const String& p_value, bool p_bit_on_length = false);
-    static String read_unicode_string(const Ref<FileAccess>& p_file);
+    /// Reads a length-prefixed string. A zero length is a valid empty string; a length past the end of
+    /// the file or a short read is reported as ERR_FILE_CORRUPT, with r_value left empty.
+    static Error read_unicode_string(const Ref<FileAccess>& p_file, String& r_value);
+    /// Reads a string from one file and writes it to another, failing the same way as read_unicode_string.
+    static Error copy_unicode_string(const Ref<FileAccess>& p_from, const Ref<FileAccess>& p_to);
 };

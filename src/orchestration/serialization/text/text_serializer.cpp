@@ -132,10 +132,15 @@ Error OrchestrationTextSerializer::set_uid(const String& p_path, int64_t p_uid) 
         return ERR_FILE_UNRECOGNIZED;
     }
 
-    OrchestrationTextParser parser;
-
     String local_path = ProjectSettings::get_singleton()->localize_path(p_path);
-    Error err = parser.set_uid(local_path, p_uid);
+
+    Error err;
+    {
+        // The parser keeps the source file open, release it before replacing the file.
+        OrchestrationTextParser parser;
+        err = parser.set_uid(local_path, p_uid);
+    }
+
     if (err == OK) {
         Ref<DirAccess> dir = DirAccess::open("res://");
         dir->remove(local_path);
@@ -153,10 +158,13 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
     const Ref<Orchestration> orchestration = p_resource;
     ERR_FAIL_COND_V_MSG(!orchestration.is_valid(), ERR_INVALID_PARAMETER, "Resource is not an orchestration");
 
+    _decode_and_set_flags(p_path, p_flags);
+
+    // Resolve the UID before opening the file for writing truncates the existing one.
+    const int64_t uid = _get_resource_id_for_path(_path, true);
+
     const Ref<FileAccess> file = FileAccess::open(p_path, FileAccess::WRITE);
     ERR_FAIL_COND_V_MSG(file.is_null(), ERR_FILE_CANT_OPEN, "Cannot write file '" + p_path + "'.");
-
-    _decode_and_set_flags(p_path, p_flags);
 
     // Walk the resource and gather all resource details
     _find_resources(p_resource, true);
@@ -170,7 +178,7 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
         icon_path,
         _saved_resources.size() + _external_resources.size(),
         OrchestrationFormat::FORMAT_VERSION,
-        _get_resource_id_for_path(_path, true)));
+        uid));
 
     #ifdef TOOLS_ENABLED
     // Keep order from cached ids
@@ -233,6 +241,8 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
         // Add a separation between external resources and next block
         file->store_line(String());
     }
+
+    Error write_error = OK;
 
     HashSet<String> used_unique_ids;
     for (List<Ref<Resource>>::Element* E = _saved_resources.front(); E ; E = E->next()) {
@@ -327,7 +337,10 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
             }
 
             String vars;
-            OScriptVariantWriter::write_to_string(value, vars, _write_resources, this);
+            if (const Error err = OScriptVariantWriter::write_to_string(value, vars, _write_resources, this)) {
+                // The writer stores null for what it cannot encode, so the file stays parseable.
+                write_error = err;
+            }
             file->store_line(StringUtils::property_name_encode(pi.name) + " = " + vars);
         }
 
@@ -339,6 +352,10 @@ Error OrchestrationTextSerializer::save(const Ref<Resource>& p_resource, const S
 
     if (file->get_error() != OK && file->get_error() != ERR_FILE_EOF) {
         return ERR_CANT_CREATE;
+    }
+
+    if (write_error != OK) {
+        return ERR_FILE_CANT_WRITE;
     }
 
     #ifdef TOOLS_ENABLED

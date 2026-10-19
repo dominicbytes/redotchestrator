@@ -56,12 +56,13 @@ class OrchestrationBinaryParser : public OrchestrationParser {
     uint32_t _version = 1;
     uint32_t _godot_version = 0;
     uint32_t _flags = 0;
+    uint32_t _variant_depth = 0;
+    Error _read_error = OK; // Set once any string fails to read, the file is then treated as corrupt
 
     bool _translation_remapped = false;
 
     String _path;
     String _type;
-    String _resource_type;
     String _script_class;
     String _icon_path;
     int64_t _uid = ResourceUID::INVALID_ID;
@@ -78,6 +79,7 @@ class OrchestrationBinaryParser : public OrchestrationParser {
 
     String _read_unicode_string();
     String _read_string();
+    bool _is_count_valid(uint64_t p_count, uint64_t p_min_element_size) const;
     Error _parse_variant(Variant& r_value);
 
     Error _read_header_block();

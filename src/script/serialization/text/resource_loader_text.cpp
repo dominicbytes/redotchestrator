@@ -78,8 +78,12 @@ Error OScriptTextResourceFormatLoader::_rename_dependencies(const String& p_path
         return OK;
     }
 
-    OrchestrationTextParser parser;
-    Error error = parser.rename_dependencies(ProjectSettings::get_singleton()->localize_path(p_path), p_renames);
+    Error error;
+    {
+        // The parser keeps the source file open, release it before replacing the file.
+        OrchestrationTextParser parser;
+        error = parser.rename_dependencies(ProjectSettings::get_singleton()->localize_path(p_path), p_renames);
+    }
 
     const String rename_file = vformat("%s.depren", p_path);
     const Ref<DirAccess> dir = DirAccess::open("res://");

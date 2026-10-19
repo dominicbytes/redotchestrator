@@ -23,21 +23,40 @@ void OrchestrationBinaryFormat::save_unicode_string(const Ref<FileAccess>& p_fil
 
     size_t length = utf8.length() + 1;
     if (p_bit_on_length) {
-        length |= 0x8000000;
+        length |= 0x80000000;
     }
 
     p_file->store_32(length);
     p_file->store_buffer(reinterpret_cast<const uint8_t*>(utf8.get_data()), utf8.length() + 1);
 }
 
-String OrchestrationBinaryFormat::read_unicode_string(const Ref<FileAccess>& p_file) {
-    ERR_FAIL_COND_V_MSG(p_file.is_null(), {}, "Cannot read unicode string when file reference is not valid.");
+Error OrchestrationBinaryFormat::read_unicode_string(const Ref<FileAccess>& p_file, String& r_value) {
+    r_value = String();
+    ERR_FAIL_COND_V_MSG(p_file.is_null(), ERR_FILE_CANT_READ, "Cannot read unicode string when file reference is not valid.");
 
-    uint32_t size = p_file->get_32();
+    // A zero length is a valid empty string, and is also what a truncated file yields at EOF.
+    const uint32_t size = p_file->get_32();
+    if (size == 0) {
+        return OK;
+    }
+
+    ERR_FAIL_COND_V_MSG(size > p_file->get_length() - p_file->get_position(), ERR_FILE_CORRUPT,
+        "String length exceeds the remaining file size, file is corrupt.");
 
     Vector<char> buffer;
     buffer.resize(size);
-    p_file->get_buffer((uint8_t*) &buffer[0], size);
+    ERR_FAIL_COND_V_MSG(p_file->get_buffer(reinterpret_cast<uint8_t*>(buffer.ptrw()), size) != size, ERR_FILE_CORRUPT,
+        "Failed to read string, file is corrupt.");
 
-    return String::utf8(&buffer[0]);
+    r_value = String::utf8(buffer.ptr(), size);
+    return OK;
+}
+
+Error OrchestrationBinaryFormat::copy_unicode_string(const Ref<FileAccess>& p_from, const Ref<FileAccess>& p_to) {
+    String value;
+    if (const Error err = read_unicode_string(p_from, value)) {
+        return err;
+    }
+    save_unicode_string(p_to, value);
+    return OK;
 }

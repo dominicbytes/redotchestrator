@@ -735,6 +735,9 @@ Error OrchestrationTextParser::rename_dependencies(const String& p_path, const D
     const Ref<FileAccess> file = FileAccess::open(p_path, FileAccess::READ);
     ERR_FAIL_COND_V(file.is_null(), ERR_FILE_CANT_OPEN);
 
+    // Relative external paths are resolved against this file's directory
+    _path = p_path;
+
     Error err = _open(file, true, false);
     if (err) {
         return err;
@@ -765,12 +768,13 @@ Error OrchestrationTextParser::rename_dependencies(const String& p_path, const D
                     _uid = ResourceSaver::get_singleton()->get_resource_id_for_path(p_path);
                 }
 
+                // Keep the file's own format version, so that load still applies any pending upgrades.
                 String tag = OrchestrationTextFormat::create_start_tag(
-                    _resource_type,
+                    _type,
                     _script_class,
                     _icon_path,
                     _resources_total,
-                    OrchestrationFormat::FORMAT_VERSION,
+                    _version,
                     _uid);
 
                 fw->store_line(tag);
@@ -953,12 +957,13 @@ Error OrchestrationTextParser::set_uid(const String& p_path, int64_t p_uid) {
     const Ref<FileAccess> fw = FileAccess::open(vformat("%s.uidren", p_path), FileAccess::WRITE);
     ERR_FAIL_COND_V(fw.is_null(), ERR_FILE_CANT_WRITE);
 
+    // Keep the file's own format version, so that load still applies any pending upgrades.
     fw->store_string(OrchestrationTextFormat::create_start_tag(
         OScript::get_class_static(),
         _script_class,
         _icon_path,
         _resources_total,
-        OrchestrationFormat::FORMAT_VERSION,
+        _version,
         p_uid).strip_edges());
 
     uint8_t c = file->get_8();
