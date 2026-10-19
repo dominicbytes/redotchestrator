@@ -343,7 +343,7 @@ String OrchestratorPlugin::_get_unsaved_status(const String& p_for_scene) const 
         return String("\n").join(message);
     }
 
-    message.push_back("Save changes to the following Orchestrator file(s) before quitting?");
+    message.push_back("Save changes to the following redotchestrator file(s) before quitting?");
     for (const String& E : unsaved_scripts) {
         message.push_back(E.trim_suffix("(*)"));
     }

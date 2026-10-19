@@ -19,6 +19,7 @@
 #include "common/macros.h"
 #include "common/scene_utils.h"
 #include "common/settings.h"
+#include "common/version.h"
 #include "core/godot/scene_string_names.h"
 #include "editor/gui/search_dialog.h"
 #include "editor/settings/editor_settings.h"
@@ -119,7 +120,7 @@ void OrchestratorEditorSettingsDialog::_bind_methods() {
 }
 
 OrchestratorEditorSettingsDialog::OrchestratorEditorSettingsDialog() {
-    set_title("Orchestrator Settings");
+    set_title(VERSION_NAME " Settings");
     set_ok_button_text("Close");
     #if GODOT_VERSION >= 0x040500
     set_flag(FLAG_MAXIMIZE_DISABLED, false);

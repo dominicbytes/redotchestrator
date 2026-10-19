@@ -350,7 +350,7 @@ void OrchestratorEditorGraphPanel::_update_panel_hint() {
             label->set_anchor_and_offset(SIDE_RIGHT, ANCHOR_END, 0);
             label->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_CENTER);
             label->set_vertical_alignment(VERTICAL_ALIGNMENT_BOTTOM);
-            label->set_text("Godot tool scripts permanently modify your scenes, so be careful how and what you save.");
+            label->set_text("Redot tool scripts permanently modify your scenes, so be careful how and what you save.");
             add_child(label);
         }
     } else {

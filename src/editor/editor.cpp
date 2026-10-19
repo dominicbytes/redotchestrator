@@ -806,7 +806,7 @@ void OrchestratorEditor::_update_selected_editor_menu() {
 
 void OrchestratorEditor::_update_online_doc() {
     _site_search->set_text("Online Docs");
-    _site_search->set_tooltip_text("Open Orchestrator online documentation.");
+    _site_search->set_tooltip_text("Open redotchestrator online documentation.");
 }
 
 void OrchestratorEditor::_script_list_clicked(int p_item, Vector2 p_local_mouse_pos, MouseButton p_button_index) {
@@ -2709,7 +2709,7 @@ OrchestratorEditor::OrchestratorEditor(OrchestratorWindowWrapper* p_window_wrapp
     add_child(_error_dialog);
 
     _disk_changed = memnew(ConfirmationDialog);
-    _disk_changed->set_title("Files have been modified outside Orchestrator");
+    _disk_changed->set_title("Files have been modified outside redotchestrator");
     add_child(_disk_changed);
 
     VBoxContainer* vbc = memnew(VBoxContainer);
