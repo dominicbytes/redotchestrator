@@ -36,15 +36,22 @@ Ref<Resource> OrchestrationBinaryParser::_get_cache_ref(const String& p_path) {
 }
 
 String OrchestrationBinaryParser::_read_unicode_string() {
-    return OrchestrationBinaryFormat::read_unicode_string(_file);
+    String value;
+    if (OrchestrationBinaryFormat::read_unicode_string(_file, value) != OK) {
+        // Sticky, so that the caller fails rather than keeping the substituted empty string.
+        _read_error = ERR_FILE_CORRUPT;
+    }
+    return value;
 }
 
 String OrchestrationBinaryParser::_read_string() {
     uint32_t id = _file->get_32();
     if (id & 0x80000000) {
         uint32_t size = id & 0x7FFFFFFF;
-        ERR_FAIL_COND_V_MSG(size > _file->get_length() - _file->get_position(), {},
-            "String length exceeds the remaining file size, file is corrupt.");
+        if (size > _file->get_length() - _file->get_position()) {
+            _read_error = ERR_FILE_CORRUPT;
+            ERR_FAIL_V_MSG({}, "String length exceeds the remaining file size, file is corrupt.");
+        }
 
         if (size > _string_buffer.size()) {
             _string_buffer.resize(size);
@@ -53,10 +60,16 @@ String OrchestrationBinaryParser::_read_string() {
             return {};
         }
 
-        _file->get_buffer(reinterpret_cast<uint8_t*>(_string_buffer.ptrw()), size);
+        if (_file->get_buffer(reinterpret_cast<uint8_t*>(_string_buffer.ptrw()), size) != size) {
+            _read_error = ERR_FILE_CORRUPT;
+            ERR_FAIL_V_MSG({}, "Failed to read string, file is corrupt.");
+        }
         return String::utf8(_string_buffer.ptr(), size);
     }
 
+    if (id >= static_cast<uint32_t>(_string_map.size())) {
+        _read_error = ERR_FILE_CORRUPT;
+    }
     ERR_FAIL_UNSIGNED_INDEX_V(id, static_cast<uint32_t>(_string_map.size()), {});
     return _string_map[id];
 }
@@ -337,6 +350,9 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
                 case OrchestrationBinaryFormat::OBJECT_EXTERNAL_RESOURCE: {
                     String ext_type = _read_unicode_string();
                     String path = _read_unicode_string();
+                    if (_read_error != OK) {
+                        return ERR_FILE_CORRUPT;
+                    }
                     if (!path.contains("://") && path.is_relative_path()) {
                         // Path is relative to file being loaded, so convert to resource path
                         path = ProjectSettings::get_singleton()->localize_path(_path.get_base_dir().path_join(path));
@@ -581,7 +597,8 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
     }
 
-    return OK;
+    // A string that could not be read must fail the value, not load as an empty string.
+    return _read_error == OK ? OK : ERR_FILE_CORRUPT;
 }
 
 Error OrchestrationBinaryParser::_read_header_block() {
@@ -631,6 +648,11 @@ Error OrchestrationBinaryParser::_read_header_block() {
 
     for (uint32_t i = 0; i < OrchestrationBinaryFormat::RESERVED_FIELDS; i++) {
         [[maybe_unused]] uint32_t reserved = _file->get_32();
+    }
+
+    if (_read_error != OK) {
+        _error_text = vformat("File '%s' has a corrupt header.", _path);
+        return ERR_FILE_CORRUPT;
     }
 
     _header_block_size = _file->get_position();
@@ -696,7 +718,7 @@ Error OrchestrationBinaryParser::_read_resource_metadata(bool p_keep_uuid_paths)
 
     _resource_metadata_block_size = _file->get_position() - _header_block_size;
 
-    return _file->eof_reached() ? ERR_FILE_CORRUPT : OK;
+    return _file->eof_reached() || _read_error != OK ? ERR_FILE_CORRUPT : OK;
 }
 
 #if GODOT_VERSION >= 0x040700
@@ -710,6 +732,9 @@ Error OrchestrationBinaryParser::_load_resource_properties(Ref<Resource>& r_reso
     for (uint32_t i = 0; i < property_count; i++) {
         const StringName name = _read_string();
         ERR_FAIL_COND_V(name == StringName(), ERR_FILE_CORRUPT);
+        if (_read_error != OK) {
+            return ERR_FILE_CORRUPT;
+        }
 
         Variant value;
         Error err = _parse_variant(value);
@@ -786,6 +811,9 @@ Error OrchestrationBinaryParser::_load() {
         _file->seek(_internal_resources[i].offset);
 
         String resource_type = _read_unicode_string();
+        if (_read_error != OK) {
+            return ERR_FILE_CORRUPT;
+        }
 
         Ref<Resource> resource;
         if (ResourceFormatLoader::CACHE_MODE_REPLACE == _cache_mode && _is_cached(path)) {
@@ -991,7 +1019,9 @@ Error OrchestrationBinaryParser::rename_dependencies(const String& p_path, const
     fw->store_32(file->get_32());
 
     // Resource type
-    OrchestrationBinaryFormat::save_unicode_string(fw, OrchestrationBinaryFormat::read_unicode_string(file));
+    if (const Error err = OrchestrationBinaryFormat::copy_unicode_string(file, fw)) {
+        return err;
+    }
 
     // Flags
     bool using_uids = false;
@@ -1002,10 +1032,14 @@ Error OrchestrationBinaryParser::rename_dependencies(const String& p_path, const
         using_uids = true;
     }
     if (flags & OrchestrationBinaryFormat::FORMAT_FLAG_HAS_SCRIPT_CLASS) {
-        OrchestrationBinaryFormat::save_unicode_string(fw, OrchestrationBinaryFormat::read_unicode_string(file));
+        if (const Error err = OrchestrationBinaryFormat::copy_unicode_string(file, fw)) {
+            return err;
+        }
     }
     if (flags & OrchestrationBinaryFormat::FORMAT_FLAG_HAS_ICON_PATH) {
-        OrchestrationBinaryFormat::save_unicode_string(fw, OrchestrationBinaryFormat::read_unicode_string(file));
+        if (const Error err = OrchestrationBinaryFormat::copy_unicode_string(file, fw)) {
+            return err;
+        }
     }
 
     // Reserved files
@@ -1016,15 +1050,23 @@ Error OrchestrationBinaryParser::rename_dependencies(const String& p_path, const
     uint32_t string_table_size = file->get_32();
     fw->store_32(string_table_size);
     for (uint32_t i = 0; i < string_table_size; i++) {
-        OrchestrationBinaryFormat::save_unicode_string(fw, OrchestrationBinaryFormat::read_unicode_string(file));
+        if (const Error err = OrchestrationBinaryFormat::copy_unicode_string(file, fw)) {
+            return err;
+        }
     }
 
     // External Resources
     uint32_t external_resource_count = file->get_32();
     fw->store_32(external_resource_count);
     for (uint32_t i = 0; i < external_resource_count; i++) {
-        String type = OrchestrationBinaryFormat::read_unicode_string(file);
-        String path = OrchestrationBinaryFormat::read_unicode_string(file);
+        String type;
+        String path;
+        if (const Error err = OrchestrationBinaryFormat::read_unicode_string(file, type)) {
+            return err;
+        }
+        if (const Error err = OrchestrationBinaryFormat::read_unicode_string(file, path)) {
+            return err;
+        }
         if (using_uids) {
             int64_t uid = file->get_64();
             if (uid != ResourceUID::INVALID_ID) {
@@ -1065,9 +1107,10 @@ Error OrchestrationBinaryParser::rename_dependencies(const String& p_path, const
     uint32_t internal_resource_count = file->get_32();
     fw->store_32(internal_resource_count);
     for (uint32_t i = 0; i < internal_resource_count; i++) {
-        const String path = OrchestrationBinaryFormat::read_unicode_string(file);
+        if (const Error err = OrchestrationBinaryFormat::copy_unicode_string(file, fw)) {
+            return err;
+        }
         uint64_t offset = file->get_64();
-        OrchestrationBinaryFormat::save_unicode_string(fw, path);
         fw->store_64(offset + delta);
     }
 
@@ -1100,7 +1143,7 @@ PackedStringArray OrchestrationBinaryParser::get_classes_used(const String& p_pa
         file->seek(offset);
 
         const String class_name = _read_unicode_string();
-        if (!file->get_error() && !class_name.is_empty() && ClassDB::class_exists(class_name)) {
+        if (_read_error == OK && !file->get_error() && !class_name.is_empty() && ClassDB::class_exists(class_name)) {
             results.push_back(class_name);
         }
     }

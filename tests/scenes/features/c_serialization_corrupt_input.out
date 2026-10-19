@@ -2,126 +2,149 @@ OSCRIPT_TEST_FAILURE
 WARNING: Removing orphan connection for 1:0-2:0, either the source or target node no longer exists. Please save orchestration 'user://c_serialization_corrupt_input/dangling_connection.torch' to apply changes.
    at: _fix_orphans (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:32)
 WARNING: Removing orphan connection for 1:0-2:0, either the source or target node no longer exists. Please save orchestration 'user://c_serialization_corrupt_input/dangling_connection.torch' to apply changes.
    at: _fix_orphans (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:32)
-dangling_connection.torch loaded: true
+dangling_connection.torch usable: true
 ERROR: Ignoring invalid variable entry 0 in orchestration.
    at: _set_variables_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid function entry 0 in orchestration.
    at: _set_functions_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid signal entry 0 in orchestration.
    at: _set_signals_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Connection list is corrupt, its size is not a multiple of 4. Ignoring the incomplete connection.
    at: _set_connections_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid node entry 0 in orchestration.
    at: _set_nodes_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid graph entry 0 in orchestration.
    at: _set_graphs_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid variable entry 0 in orchestration.
    at: _set_variables_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid function entry 0 in orchestration.
    at: _set_functions_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid signal entry 0 in orchestration.
    at: _set_signals_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Connection list is corrupt, its size is not a multiple of 4. Ignoring the incomplete connection.
    at: _set_connections_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid node entry 0 in orchestration.
    at: _set_nodes_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
 ERROR: Ignoring invalid graph entry 0 in orchestration.
    at: _set_graphs_internal (src/orchestration/orchestration.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:33)
-null_entries.torch loaded: true
+null_entries.torch usable: true
 ERROR: user://c_serialization_corrupt_input/deep_text.torch:5 - Parse Error: Value nesting is too deep
    at: _load (src/orchestration/serialization/text/text_parser.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:34)
 ERROR: user://c_serialization_corrupt_input/deep_text.torch:5 - Parse Error: Value nesting is too deep
    at: _load (src/orchestration/serialization/text/text_parser.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:34)
 ERROR: Failed to load script "user://c_serialization_corrupt_input/deep_text.torch" with error "Parse error".
    at: _load (src/script/serialization/text/resource_loader_text.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:47)
+       [0] _check_text (res://scenes/features/c_serialization_corrupt_input.gd:63)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:34)
-deep_text.torch loaded: true
+deep_text.torch usable: false
 ERROR: Index id = 7 is out of bounds (static_cast<uint32_t>(_string_map.size()) = 0).
    at: _read_string (src/orchestration/serialization/binary/binary_parser.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:55)
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:35)
 ERROR: Condition "name == StringName()" is true. Returning: ERR_FILE_CORRUPT
    at: _load_resource_properties (src/orchestration/serialization/binary/binary_parser.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:55)
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:35)
 ERROR: Index id = 7 is out of bounds (static_cast<uint32_t>(_string_map.size()) = 0).
    at: _read_string (src/orchestration/serialization/binary/binary_parser.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:55)
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:35)
 ERROR: Condition "name == StringName()" is true. Returning: ERR_FILE_CORRUPT
    at: _load_resource_properties (src/orchestration/serialization/binary/binary_parser.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:55)
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:35)
 ERROR: Failed to load script "user://c_serialization_corrupt_input/bad_string_index.os" with error "Parse error".
    at: _load (src/script/serialization/binary/resource_loader_binary.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:55)
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:35)
-bad_string_index.os loaded: true
+bad_string_index.os usable: false
 ERROR: String length exceeds the remaining file size, file is corrupt.
    at: read_unicode_string (src/orchestration/serialization/binary/binary_format.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:55)
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:36)
 ERROR: String length exceeds the remaining file size, file is corrupt.
    at: read_unicode_string (src/orchestration/serialization/binary/binary_format.cpp)
    GDScript backtrace (most recent call first):
-       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:55)
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
        [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:36)
-bad_string_length.os loaded: true
+ERROR: Failed to load script "user://c_serialization_corrupt_input/bad_string_length.os" with error "Parse error".
+   at: _load (src/script/serialization/binary/resource_loader_binary.cpp)
+   GDScript backtrace (most recent call first):
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
+       [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:36)
+bad_string_length.os usable: false
+valid_final_string.os usable: true
+valid_final_string.os text kept: true
+ERROR: String length exceeds the remaining file size, file is corrupt.
+   at: read_unicode_string (src/orchestration/serialization/binary/binary_format.cpp)
+   GDScript backtrace (most recent call first):
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
+       [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:45)
+ERROR: String length exceeds the remaining file size, file is corrupt.
+   at: read_unicode_string (src/orchestration/serialization/binary/binary_format.cpp)
+   GDScript backtrace (most recent call first):
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
+       [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:45)
+ERROR: Failed to load script "user://c_serialization_corrupt_input/bad_final_string_length.os" with error "Parse error".
+   at: _load (src/script/serialization/binary/resource_loader_binary.cpp)
+   GDScript backtrace (most recent call first):
+       [0] _check_binary (res://scenes/features/c_serialization_corrupt_input.gd:71)
+       [1] _ready (res://scenes/features/c_serialization_corrupt_input.gd:45)
+bad_final_string_length.os usable: false
 Corrupt input handled

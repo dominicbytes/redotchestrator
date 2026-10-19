@@ -614,7 +614,9 @@ Error OrchestrationBinarySerializer::set_uid(const String& p_path, int64_t p_uid
     // Store the resource type
     // The incoming resource is an Orchestration but for backward compatibility it should be saved
     // as an OScript object, so default to that here.
-    OrchestrationBinaryFormat::save_unicode_string(fw, OrchestrationBinaryFormat::read_unicode_string(file));
+    if (const Error err = OrchestrationBinaryFormat::copy_unicode_string(file, fw)) {
+        return err;
+    }
 
     // Write flags
     // Binary format will always include UIDs
@@ -628,7 +630,9 @@ Error OrchestrationBinarySerializer::set_uid(const String& p_path, int64_t p_uid
     }
 
     if (flags & OrchestrationBinaryFormat::FORMAT_FLAG_HAS_SCRIPT_CLASS) {
-        OrchestrationBinaryFormat::save_unicode_string(fw, OrchestrationBinaryFormat::read_unicode_string(file));
+        if (const Error err = OrchestrationBinaryFormat::copy_unicode_string(file, fw)) {
+            return err;
+        }
     }
 
     uint8_t b = file->get_8();

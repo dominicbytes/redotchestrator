@@ -35,24 +35,40 @@ func _ready() -> void:
 	_check_binary("bad_string_index.os", _bad_string_index())
 	_check_binary("bad_string_length.os", _bad_string_length())
 
+	# The same file twice, once intact and once with only the final string's length word damaged.
+	# The damaged copy must fail to load rather than keep an empty string in place of the text.
+	var valid := _check_binary("valid_final_string.os", _final_string(false))
+	if valid:
+		var resaved := DIR + "/valid_final_string.torch"
+		ResourceSaver.save(valid, resaved)
+		printerr("valid_final_string.os text kept: ", FileAccess.get_file_as_string(resaved).contains('metadata/text = "KEEP_THIS_TEXT"'))
+	_check_binary("bad_final_string_length.os", _final_string(true))
+
 	_clean(DIR)
 	printerr("Corrupt input handled")
 
 
-func _check_text(file_name: String, text: String) -> void:
+# A script is usable when it loaded and can be instantiated.
+func _report(file_name: String, script: Script) -> Script:
+	var usable := script != null and script.can_instantiate()
+	printerr("%s usable: %s" % [file_name, usable])
+	return script if usable else null
+
+
+func _check_text(file_name: String, text: String) -> Script:
 	var path := DIR + "/" + file_name
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	file.store_string(text)
 	file.close()
-	printerr("%s loaded: %s" % [file_name, ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) != null])
+	return _report(file_name, ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE))
 
 
-func _check_binary(file_name: String, bytes: PackedByteArray) -> void:
+func _check_binary(file_name: String, bytes: PackedByteArray) -> Script:
 	var path := DIR + "/" + file_name
 	var file := FileAccess.open_compressed(path, FileAccess.WRITE)
 	file.store_buffer(bytes)
 	file.close()
-	printerr("%s loaded: %s" % [file_name, ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) != null])
+	return _report(file_name, ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE))
 
 
 func _deep_text(depth: int) -> String:
@@ -76,9 +92,25 @@ func _bad_string_length() -> PackedByteArray:
 	return _end(buffer)
 
 
+# A valid base type followed by a final non-empty string property. When damaged, only the
+# length word of that string changes, its payload stays in the file.
+func _final_string(damaged: bool) -> PackedByteArray:
+	var buffer := _begin(["base_type", "metadata/text"], 2)
+	buffer.put_u32(0)
+	buffer.put_u32(5) # VARIANT_STRING
+	_put_string(buffer, "Node")
+	buffer.put_u32(1)
+	buffer.put_u32(5) # VARIANT_STRING
+	var text := "KEEP_THIS_TEXT".to_utf8_buffer()
+	text.push_back(0)
+	buffer.put_u32(0x7FFFFF00 if damaged else text.size())
+	buffer.put_data(text)
+	return _end(buffer)
+
+
 # Writes the header and resource table of a binary orchestration, followed by the start
-# of the main resource with one property, whose name and value the caller appends.
-func _begin(strings: Array) -> StreamPeerBuffer:
+# of the main resource, whose property names and values the caller appends.
+func _begin(strings: Array, property_count := 1) -> StreamPeerBuffer:
 	var buffer := StreamPeerBuffer.new()
 	buffer.put_data("GDOS".to_ascii_buffer())
 	buffer.put_u32(0) # little endian
@@ -102,7 +134,7 @@ func _begin(strings: Array) -> StreamPeerBuffer:
 	buffer.put_u64(buffer.get_position() + 8)
 
 	_put_string(buffer, "Orchestration")
-	buffer.put_u32(1) # properties
+	buffer.put_u32(property_count)
 	return buffer
 
 

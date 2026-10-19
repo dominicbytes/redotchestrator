@@ -57,6 +57,7 @@ class OrchestrationBinaryParser : public OrchestrationParser {
     uint32_t _godot_version = 0;
     uint32_t _flags = 0;
     uint32_t _variant_depth = 0;
+    Error _read_error = OK; // Set once any string fails to read, the file is then treated as corrupt
 
     bool _translation_remapped = false;
 
