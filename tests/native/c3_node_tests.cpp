@@ -128,6 +128,85 @@ class C3NodeTests : public RefCounted {
         return true;
     }
 
+    bool test_crossed_arguments() {
+        for (bool reverse : {false, true}) {
+            for (int removed : {0, 1}) {
+                const Ref<Orchestration> script = model();
+                MethodInfo method;
+                method.name = "crossed";
+                method.arguments.push_back(PropertyUtils::make_typed("a", Variant::INT));
+                method.arguments.push_back(PropertyUtils::make_typed("b", Variant::INT));
+                const Ref<OScriptFunction> function = script->create_function(method, true);
+                const Ref<OScriptGraph> graph = function->get_function_graph();
+                OScriptNodeInitContext context;
+                context.method = method;
+                const Ref<OScriptNodeCallScriptFunction> call = graph->create_node<OScriptNodeCallScriptFunction>(context);
+                const Ref<OScriptNode> entry = function->get_owning_node();
+                script->set("nodes", reverse ? Array::make(call, entry) : Array::make(entry, call));
+                C3_CHECK(script->get_nodes()[0] == (reverse ? Ref<OScriptNode>(call) : entry));
+                graph->link(entry->get_id(), 1, call->get_id(), 2);
+                graph->link(entry->get_id(), 2, call->get_id(), 1);
+                C3_CHECK(script->get_connections().size() == 2);
+
+                function->remove_argument(removed);
+                C3_CHECK(script->get_connections().is_empty());
+                C3_CHECK(Array(script->get("connections")).is_empty());
+                C3_CHECK(entry->find_pin(1, PD_Output)->get_pin_name() == StringName(removed ? "a" : "b"));
+                C3_CHECK(call->find_pin(1, PD_Input)->get_pin_name() == StringName(removed ? "a" : "b"));
+            }
+        }
+        return true;
+    }
+
+    bool test_getter_arguments() {
+        for (const char* name : {"get_score", "is_score_available"}) {
+            const Ref<Orchestration> script = model();
+            MethodInfo method;
+            method.name = name;
+            const Variant::Type type = method.name == StringName("get_score") ? Variant::INT : Variant::BOOL;
+            method.return_val = PropertyUtils::make_typed("result", type);
+            method.arguments.push_back(PropertyUtils::make_typed("index", Variant::INT));
+            const Ref<OScriptFunction> function = script->create_function(method, true);
+            const Ref<OScriptGraph> graph = function->get_function_graph();
+            OScriptNodeInitContext context;
+            context.method = method;
+            const Ref<OScriptNodeCallScriptFunction> call = graph->create_node<OScriptNodeCallScriptFunction>(context);
+            const Ref<OScriptNode> entry = function->get_owning_node();
+            entry->find_pin(0, PD_Output)->unlink_all();
+            const Ref<OScriptNodeFunctionResult> result = graph->create_node<OScriptNodeFunctionResult>(context);
+            const Ref<OScriptNodeFunctionResult> other_result = graph->create_node<OScriptNodeFunctionResult>(context);
+            graph->link(entry->get_id(), 0, call->get_id(), 0);
+            graph->link(entry->get_id(), 1, call->get_id(), 1);
+            graph->link(call->get_id(), 0, result->get_id(), 0);
+            graph->link(call->get_id(), 1, result->get_id(), 1);
+            graph->link(call->get_id(), 1, other_result->get_id(), 1);
+            C3_CHECK(script->get_connections().size() == 5);
+
+            function->remove_argument(0);
+            C3_CHECK(call->find_pins(PD_Input).is_empty());
+            C3_CHECK(call->find_pins(PD_Output).size() == 1);
+            C3_CHECK(call->is_pure());
+            C3_CHECK(script->get_connections().size() == 2);
+            C3_CHECK(Array(script->get("connections")).size() == 8);
+            for (const OScriptConnection& connection : script->get_connections()) {
+                const Ref<OScriptNodePin> from = script->get_node(connection.from_node)->find_pin(connection.from_port, PD_Output);
+                const Ref<OScriptNodePin> to = script->get_node(connection.to_node)->find_pin(connection.to_port, PD_Input);
+                C3_CHECK(from.is_valid() && to.is_valid());
+                C3_CHECK(from->is_output() && to->is_input());
+                C3_CHECK(from->is_execution() == to->is_execution());
+                C3_CHECK(from->get_type() == type && to->get_type() == type);
+                C3_CHECK(to->can_accept(from));
+                C3_CHECK(connection.from_node == call->get_id() && connection.from_port == 0);
+                C3_CHECK(from->get_pin_name() == StringName("return_value"));
+            }
+            for (const Ref<OScriptNodeFunctionResult>& sink : {result, other_result}) {
+                const Vector<Ref<OScriptNodePin>> sources = sink->find_pin(1, PD_Input)->get_connections();
+                C3_CHECK(sources.size() == 1 && sources[0] == call->find_pin(0, PD_Output));
+            }
+        }
+        return true;
+    }
+
     bool test_variable_copies() {
         const Ref<Orchestration> script = model();
         const Ref<OScriptVariable> array = script->create_variable("items");
@@ -262,7 +341,9 @@ protected:
 
 public:
     bool run() {
-        return test_graphs_and_functions() && test_reroutes() && test_arguments()
+        const bool crossed = test_crossed_arguments();
+        const bool getters = test_getter_arguments();
+        return crossed && getters && test_graphs_and_functions() && test_reroutes() && test_arguments()
             && test_variable_copies() && test_dynamic_inputs() && test_varargs()
             && test_optional_pins() && test_preload();
     }

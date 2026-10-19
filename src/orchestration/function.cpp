@@ -377,6 +377,14 @@ void OScriptFunction::remove_argument(int p_index) {
     if (_orchestration && is_user_defined()) {
         ERR_FAIL_INDEX(p_index, _method.arguments.size());
         const StringName argument_name = _method.arguments[p_index].name;
+        MethodInfo method = _method;
+        #if GODOT_VERSION >= 0x040600
+        method.arguments.remove_at(p_index);
+        #else
+        method.arguments.erase(method.arguments.begin() + p_index);
+        #endif
+
+        List<Ref<OScriptNodePin>> removed_pins;
         for (const Ref<OScriptNode>& node : _orchestration->get_nodes()) {
             const Ref<OScriptNodeCallScriptFunction> call_func = node;
             const Ref<OScriptNodeFunctionEntry> entry = node;
@@ -384,22 +392,31 @@ void OScriptFunction::remove_argument(int p_index) {
             const bool is_entry = entry.is_valid() && entry->get_function() == this;
             if (is_call || is_entry) {
                 const EPinDirection direction = is_call ? PD_Input : PD_Output;
-                const Ref<OScriptNodePin> pin = node->find_pin(argument_name, direction);
-                if (pin.is_valid()) {
-                    const int index = pin->get_pin_index();
-                    pin->unlink_all();
-                    node->remove_pin(pin);
-                    _orchestration->adjust_connections(node.ptr(), index + 1, -1, direction);
+                const Ref<OScriptNodePin> argument = node->find_pin(argument_name, direction);
+                const bool remove_execution = is_call && !call_func->method_has_execution_pins(method);
+                const Vector<Ref<OScriptNodePin>> pins = node->get_all_pins();
+                // Remove higher indices first so each endpoint shift uses its original index.
+                for (int i = pins.size() - 1; i >= 0; i--) {
+                    const Ref<OScriptNodePin>& pin = pins[i];
+                    if (pin == argument || (remove_execution && pin->is_execution())) {
+                        removed_pins.push_back(pin);
+                    }
                 }
             }
         }
 
-        #if GODOT_VERSION >= 0x040600
-        _method.arguments.remove_at(p_index);
-        #else
-        _method.arguments.erase(_method.arguments.begin() + p_index);
-        #endif
+        // All nodes must retain their original pin vectors and cached indices while unlinking.
+        for (const Ref<OScriptNodePin>& pin : removed_pins) {
+            pin->unlink_all();
+        }
+        for (const Ref<OScriptNodePin>& pin : removed_pins) {
+            OScriptNode* node = pin->get_owning_node();
+            const int index = pin->get_pin_index();
+            node->remove_pin(pin);
+            _orchestration->adjust_connections(node, index + 1, -1, pin->get_direction());
+        }
 
+        _method = method;
         emit_changed();
     }
 }

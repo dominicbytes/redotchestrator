@@ -126,6 +126,9 @@ public:
     void remove_dynamic_pin(const Ref<OScriptNodePin>& p_pin) override;
     //~ End OScriptEditablePinNode Interface
 
+    /// Check the execution-pin layout before applying a method signature change.
+    bool method_has_execution_pins(const MethodInfo& p_method) const { return _has_execution_pins(p_method); }
+
     bool is_chained() const { return _chain; }
 
     bool is_awaited() const { return _await; }
