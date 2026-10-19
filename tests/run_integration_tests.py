@@ -19,8 +19,8 @@ Options:
                           count, capped at 4; use -j 1 to force sequential runs.
     -h, --help            Show the argparse-generated help and exit.
 
-Exit code is 0 when all tests pass (or skip), and 1 if any test fails, crashes, or
-hits an unknown directive.
+Exit code is 0 when at least one scene runs and all applicable tests pass, and 1
+if discovery, expected outputs, execution, or output validation fails.
 """
 
 import argparse
@@ -60,6 +60,7 @@ KNOWN_IMPORT_SHUTDOWN_LEAKS = {
 }
 
 engine_version = ""
+SCENE_MANIFEST = Path(__file__).with_name("integration_scenes.txt")
 
 scenes_dir = (Path(__file__).parent / "scenes").resolve()
 
@@ -217,8 +218,8 @@ def validate_output(source, result, elapsed):
     out_file = source.with_suffix(".out")
 
     if not out_file.exists():
-        return "SKIP", format_result("SKIP", elapsed, source) + \
-            "\n  No .out file was defined, test will be skipped."
+        return "ERROR", format_result("ERROR", elapsed, source) + \
+            "\n  Missing expected output (.out file)."
 
     lines = out_file.read_text().strip().splitlines()
     if len(lines) == 0:
@@ -367,15 +368,41 @@ def run_scene(scene_file):
     return validate_output(scene_file, result, elapsed)
 
 def test_scenes(version, name_filter, jobs):
+    discovered = sorted(scenes_dir.rglob("*.tscn"))
+    expected = set(SCENE_MANIFEST.read_text().splitlines())
+    actual = {scene.relative_to(scenes_dir).as_posix() for scene in discovered}
+    if actual != expected:
+        counts["ERROR"] += 1
+        print("Scene inventory mismatch; update integration_scenes.txt for intentional fixture changes.")
+        for label, names in [("missing", expected - actual), ("unlisted", actual - expected)]:
+            for name in sorted(names):
+                print(f"  {label}: {name}")
+        return
+
     scenes = []
-    for scene_file in sorted(scenes_dir.rglob("*.tscn")):
+    for scene_file in discovered:
         rel = scene_file.relative_to(scenes_dir)
         if name_filter and name_filter not in str(rel):
             continue
-        if not is_version_supported(version, scene_file.resolve()):
+        if not scene_file.with_suffix(".out").is_file():
+            counts["ERROR"] += 1
+            print(format_result("ERROR", 0, scene_file) + "\n  Missing expected output (.out file).")
+            continue
+        if not is_version_supported(version, scene_file):
+            counts["SKIP"] += 1
+            meta = read_meta(scene_file)
+            bounds = ", ".join(f"{key}={meta[key]}" for key in ("min_version", "max_version") if key in meta)
+            print(format_result("SKIP", 0, scene_file) + f"\n  API {version} excluded by {bounds}.")
             continue
         scenes.append(scene_file)
 
+    if not scenes and not counts["ERROR"]:
+        counts["ERROR"] += 1
+        print("No applicable scenes selected.")
+    if counts["ERROR"]:
+        return
+
+    print(f"Selected {len(scenes)} applicable scene(s) from {len(discovered)} inventoried fixture(s).")
     with ThreadPoolExecutor(max_workers=jobs) as executor:
         # map() preserves submission order, so output stays deterministic
         # regardless of which scene finishes first.
