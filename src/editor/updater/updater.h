@@ -152,7 +152,7 @@ protected:
     void _handle_custom_action(const StringName& p_action);
     void _download_completed(int p_status, int p_code, const PackedStringArray& p_headers, const PackedByteArray& p_data);
     void _restart_editor();
-    void _install();
+    void _install(const PackedByteArray& p_archive);
     void _cancel_and_close();
     void _filter_changed(int p_index);
     void _update_tree(bool p_stable_only = false);

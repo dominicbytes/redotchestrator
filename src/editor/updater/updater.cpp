@@ -24,6 +24,8 @@
 #include "core/godot/scene_string_names.h"
 #include "editor/plugins/orchestrator_editor_plugin.h"
 #include "editor/updater/update_security.h"
+#include "editor/updater/update_archive.h"
+#include "editor/updater/update_filesystem.h"
 
 #include <godot_cpp/classes/center_container.hpp>
 #include <godot_cpp/classes/dir_access.hpp>
@@ -41,14 +43,17 @@
 #include <godot_cpp/classes/time.hpp>
 #include <godot_cpp/classes/timer.hpp>
 #include <godot_cpp/classes/v_box_container.hpp>
-#include <godot_cpp/classes/zip_reader.hpp>
+#include <godot_cpp/classes/config_file.hpp>
+#include <godot_cpp/classes/crypto.hpp>
+#include <godot_cpp/classes/hashing_context.hpp>
 
 #include <limits>
+#include <memory>
+#include <unordered_map>
 #include <string_view>
 
 namespace {
-    constexpr int64_t MAX_UPDATE_ASSET_SIZE = 1024LL * 1024LL * 1024LL;
-    constexpr int64_t MAX_EXTRACTED_SIZE = 1024LL * 1024LL * 1024LL;
+    constexpr int64_t MAX_UPDATE_ASSET_SIZE = redotchestrator::updater::MAX_ARCHIVE_SIZE;
 
     std::string_view as_utf8_view(const CharString& p_string) {
         return { p_string.get_data(), static_cast<size_t>(p_string.length()) };
@@ -111,37 +116,21 @@ namespace {
             as_utf8_view(minimum), as_utf8_view(maximum), as_utf8_view(current));
     }
 
+    std::filesystem::path native_path(const String& p_path) {
+        return redotchestrator::updater::update_native_path(p_path.utf8().get_data());
+    }
+
+    std::filesystem::path update_project_root() {
+        return native_path(ProjectSettings::get_singleton()->globalize_path("res://").simplify_path());
+    }
+
+    bool plain_update_path(const String& p_path, bool p_allow_missing = true) {
+        return redotchestrator::updater::plain_update_directory_chain(update_project_root(), native_path(p_path), p_allow_missing);
+    }
+
     Error remove_tree(const String& p_path) {
-        if (FileAccess::file_exists(p_path)) {
-            return DirAccess::remove_absolute(p_path);
-        }
-        if (!DirAccess::dir_exists_absolute(p_path)) {
-            return OK;
-        }
-
-        Ref<DirAccess> directory = DirAccess::open(p_path);
-        if (directory.is_null()) {
-            return DirAccess::get_open_error();
-        }
-        directory->set_include_hidden(true);
-        directory->set_include_navigational(false);
-        Error error = directory->list_dir_begin();
-        if (error != OK) {
-            return error;
-        }
-
-        for (String name = directory->get_next(); !name.is_empty(); name = directory->get_next()) {
-            const String child_path = p_path.path_join(name);
-            const bool is_directory = directory->current_is_dir();
-            const bool is_link = directory->is_link(name);
-            error = is_directory && !is_link ? remove_tree(child_path) : DirAccess::remove_absolute(child_path);
-            if (error != OK) {
-                directory->list_dir_end();
-                return error;
-            }
-        }
-        directory->list_dir_end();
-        return DirAccess::remove_absolute(p_path);
+        return plain_update_path(p_path)
+            && redotchestrator::updater::remove_update_tree(native_path(p_path), update_project_root()) ? OK : ERR_CANT_OPEN;
     }
 
     String get_addon_path() {
@@ -155,6 +144,54 @@ namespace {
     String get_update_backup_path() {
         return get_addon_path().get_base_dir().path_join(".redotchestrator-update-backup");
     }
+
+    String get_update_record_path() {
+        return get_addon_path().get_base_dir().path_join(".redotchestrator-update-transaction.json");
+    }
+
+    bool plain_update_paths(const String& p_stage) {
+        return plain_update_path(p_stage) && plain_update_path(get_update_backup_path()) && plain_update_path(get_addon_path());
+    }
+
+    bool recover_update() {
+        using namespace redotchestrator::updater;
+        if (!plain_update_paths(get_update_stage_path())) { return false; }
+        const String record_path = get_update_record_path();
+        if (!FileAccess::file_exists(record_path)) { return true; }
+        Ref<FileAccess> record = FileAccess::open(record_path, FileAccess::READ);
+        if (record.is_null() || record->get_length() > 4096) { return false; }
+        const Variant parsed = JSON::parse_string(record->get_as_text());
+        record->close();
+        if (parsed.get_type() != Variant::DICTIONARY) { return false; }
+        const Dictionary data = parsed;
+        const String version = data.get("version", "");
+        const String stage_name = data.get("stage", "");
+        if (!is_valid_release_tag(version) || !stage_name.begins_with(".redotchestrator-update-stage-")
+            || !is_safe_archive_path("addons/orchestrator/" + stage_name)) { return false; }
+        const String stage = get_addon_path().get_base_dir().path_join(stage_name);
+        const String backup = get_update_backup_path();
+        if (!plain_update_paths(stage)) {
+            WARN_PRINT("Redotchestrator recovery found a linked addon, backup or staging directory. Update manually.");
+            return false;
+        }
+        const bool target_exists = DirAccess::dir_exists_absolute(get_addon_path());
+        const bool backup_exists = DirAccess::dir_exists_absolute(backup);
+        const String current = vformat("v%d.%d.%d.%s", VERSION_MAJOR, VERSION_MINOR, VERSION_MAINTENANCE, VERSION_STATUS);
+        const bool started = OrchestratorVersion::parse(version).is_equal(OrchestratorVersion::parse(current));
+        const UpdateRecovery action = update_recovery(true, target_exists, backup_exists, started);
+        if (action == UpdateRecovery::RESTORE_BACKUP) {
+            if (!plain_update_path(backup, false) || !plain_update_path(get_addon_path())
+                || DirAccess::rename_absolute(backup, get_addon_path()) != OK) { return false; }
+        } else if (action == UpdateRecovery::CONFIRM_STARTED) {
+            if (remove_tree(backup) != OK) { return false; }
+        } else if (action == UpdateRecovery::KEEP_PENDING) {
+            return false;
+        }
+        // A record with the old target and no backup never reached the first rename, or rolled back.
+        if (remove_tree(stage) != OK) { return false; }
+        return DirAccess::remove_absolute(record_path) == OK;
+    }
+
 }
 
 OrchestratorVersion::Build OrchestratorVersion::Build::parse(const String& p_build) {
@@ -319,7 +356,6 @@ void OrchestratorUpdaterVersionPicker::_request_download() {
         _set_button_enable_state(false);
         _tree->deselect_all();
 
-        DirAccess::remove_absolute(_download->get_download_file());
         _download->set_body_size_limit(static_cast<int32_t>(asset_size + 1));
         const Error error = _download->request(download_url);
         if (error == OK) {
@@ -344,7 +380,6 @@ void OrchestratorUpdaterVersionPicker::_handle_custom_action(const StringName& p
 
 void OrchestratorUpdaterVersionPicker::_download_completed(int p_result, int p_code, const PackedStringArray& p_headers, const PackedByteArray& p_data) {
     static_cast<void>(p_headers);
-    static_cast<void>(p_data);
 
     _progress->set_visible(false);
     _progress->set_indeterminate(false);
@@ -356,22 +391,19 @@ void OrchestratorUpdaterVersionPicker::_download_completed(int p_result, int p_c
         return;
     }
 
-    const String file_name = _download->get_download_file();
-    Ref<FileAccess> downloaded_file = FileAccess::open(file_name, FileAccess::READ);
-    if (downloaded_file.is_null() || downloaded_file->get_length() != _expected_asset_size) {
-        DirAccess::remove_absolute(file_name);
+    if (p_data.size() != _expected_asset_size) {
         _show_failure("The downloaded file size does not match the trusted release manifest.");
         return;
     }
-
-    const String actual_sha256 = FileAccess::get_sha256(file_name).to_lower();
-    if (actual_sha256 != _expected_sha256) {
-        DirAccess::remove_absolute(file_name);
-        _show_failure("The downloaded file failed SHA-256 verification and was removed.");
+    Ref<HashingContext> hash = memnew(HashingContext);
+    if (hash->start(HashingContext::HASH_SHA256) != OK || hash->update(p_data) != OK
+        || hash->finish().hex_encode() != _expected_sha256) {
+        _show_failure("The downloaded file failed SHA-256 verification.");
         return;
     }
 
-    _install();
+    // HTTPRequest owns this bounded snapshot; installation never reopens a cache pathname.
+    _install(p_data);
 }
 
 void OrchestratorUpdaterVersionPicker::_show_failure(const String& p_message) {
@@ -387,137 +419,205 @@ void OrchestratorUpdaterVersionPicker::_restart_editor() {
     EI->restart_editor(true);
 }
 
-void OrchestratorUpdaterVersionPicker::_install() {
+void OrchestratorUpdaterVersionPicker::_install(const PackedByteArray& p_archive) {
+    using namespace redotchestrator::updater;
     _status->set_visible(true);
     _status->set_text("Installing, please wait...");
-    const String file_name = _download->get_download_file();
-
-    Ref<ZIPReader> reader = memnew(ZIPReader);
-    if (reader->open(file_name) != OK) {
-        _show_failure("The verified download is not a readable ZIP archive.");
+    const std::span<const uint8_t> bytes(p_archive.ptr(), static_cast<size_t>(p_archive.size()));
+    std::vector<ArchiveEntry> entries;
+    if (!inspect_archive(bytes, entries)) {
+        _show_failure("The verified download failed ZIP metadata validation.");
         return;
     }
 
     const String target_path = get_addon_path();
-    const String stage_path = get_update_stage_path();
+    Ref<Crypto> crypto = memnew(Crypto);
+    const String stage_path = get_update_stage_path() + "-" + crypto->generate_random_bytes(16).hex_encode();
     const String backup_path = get_update_backup_path();
-    const auto fail_install = [this, &reader, &stage_path](const String& p_message) {
-        reader->close();
+    if (!plain_update_paths(stage_path)) {
+        _show_failure("Self-update requires plain project addon directories without links or junctions. Update manually.");
+        return;
+    }
+    const auto project_root = update_project_root();
+    const auto native_stage = native_path(stage_path);
+#ifdef _WIN32
+    auto activation_rename = UpdateDirectoryLock::prepare_rename(native_path(target_path));
+#endif
+    std::vector<std::unique_ptr<UpdateDirectoryLock>> directory_locks;
+    const auto fail_install = [this, &stage_path, &directory_locks](const String& p_message) {
+        directory_locks.clear();
         remove_tree(stage_path);
         _show_failure(p_message);
     };
-
-    Error error = remove_tree(stage_path);
-    if (error != OK || DirAccess::make_dir_recursive_absolute(stage_path) != OK) {
-        fail_install("Unable to create a clean staging directory for the update.");
+    // Reserve a fresh directory rather than reusing a name another editor may be extracting into.
+    Error error = DirAccess::make_dir_absolute(stage_path);
+    if (error != OK) {
+        _show_failure("Unable to reserve an update staging directory.");
         return;
     }
-
-    const PackedStringArray files = reader->get_files();
-    HashMap<String, bool> extracted_paths;
-    int64_t extracted_size = 0;
-    int64_t extracted_file_count = 0;
-    bool has_extension_descriptor = false;
-    const String archive_prefix = "addons/orchestrator/";
-
-    for (const String& file : files) {
-        if (!is_safe_archive_path(file)) {
-            fail_install(vformat("The archive contains a forbidden path: %s", file));
-            return;
-        }
-
-        const String relative_path = file.substr(archive_prefix.length());
-        if (relative_path.is_empty()) {
-            continue;
-        }
-
-        const String collision_key = relative_path.to_lower();
-        if (extracted_paths.has(collision_key)) {
-            fail_install(vformat("The archive contains a duplicate path: %s", file));
-            return;
-        }
-        extracted_paths[collision_key] = true;
-
-        const String destination = stage_path.path_join(relative_path);
-        if (file.ends_with("/")) {
-            if (DirAccess::make_dir_recursive_absolute(destination) != OK) {
-                fail_install(vformat("Unable to stage directory: %s", relative_path));
+    directory_locks.push_back(std::make_unique<UpdateDirectoryLock>(native_stage, project_root));
+    if (!directory_locks.back()->valid()) {
+        fail_install("Unable to pin the update staging directory.");
+        return;
+    }
+    std::unordered_map<std::string, bool> directories;
+    std::unordered_map<std::string, uint32_t> staged_files;
+    for (const ArchiveEntry& entry : entries) {
+        const String file = String::utf8(entry.path.c_str());
+        const String relative_path = file.substr(String("addons/orchestrator/").length());
+        if (relative_path.is_empty()) { continue; }
+        const bool directory = file.ends_with("/");
+        const String parent = directory ? relative_path.trim_suffix("/") : relative_path.get_base_dir();
+        String current;
+        for (const String& segment : parent.split("/", false)) {
+            current = current.is_empty() ? segment : current.path_join(segment);
+            const std::string key = current.utf8().get_data();
+            if (directories.contains(key)) { continue; }
+            const String path = stage_path.path_join(current);
+            if (!plain_update_path(path.get_base_dir(), false) || DirAccess::make_dir_absolute(path) != OK) {
+                fail_install("Unable to create an archive directory.");
                 return;
             }
-            continue;
+            directory_locks.push_back(std::make_unique<UpdateDirectoryLock>(native_path(path), project_root));
+            if (!directory_locks.back()->valid()) {
+                fail_install("An archive directory was replaced with a link.");
+                return;
+            }
+            directories[key] = true;
         }
+        if (directory) { continue; }
 
-        const PackedByteArray contents = reader->read_file(file);
-        extracted_size += contents.size();
-        if (extracted_size > MAX_EXTRACTED_SIZE) {
-            fail_install("The archive exceeds Redotchestrator's extracted-size limit.");
+        PackedByteArray contents = p_archive.slice(entry.offset, int64_t(entry.offset) + entry.compressed_size);
+        if (entry.method == 8) {
+            // Wrap the raw ZIP DEFLATE stream in gzip so the engine verifies its end marker,
+            // size and CRC. The dynamic inflater enforces the preflighted budget as it grows.
+            if (!entry.size) {
+                fail_install("Empty archive members must use stored compression.");
+                return;
+            }
+            PackedByteArray gzip;
+            const uint8_t header[] = { 0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 3 };
+            gzip.resize(10);
+            memcpy(gzip.ptrw(), header, 10);
+            gzip.append_array(contents);
+            const int64_t trailer = gzip.size();
+            gzip.resize(trailer + 8);
+            gzip.encode_u32(trailer, entry.crc);
+            gzip.encode_u32(trailer + 4, entry.size);
+            contents = gzip.decompress_dynamic(entry.size, FileAccess::COMPRESSION_GZIP);
+        }
+        if (!verify_archive_entry(entry, { contents.ptr(), static_cast<size_t>(contents.size()) })) {
+            fail_install("Unable to verify an archive member's data, size or CRC.");
             return;
         }
-
-        if (DirAccess::make_dir_recursive_absolute(destination.get_base_dir()) != OK) {
-            fail_install(vformat("Unable to create the staging path for: %s", relative_path));
+        if (!write_update_file(native_path(stage_path.path_join(relative_path)),
+                { contents.ptr(), static_cast<size_t>(contents.size()) }, project_root)) {
+            fail_install("Unable to write a staged archive member safely.");
             return;
         }
-
-        Ref<FileAccess> output = FileAccess::open(destination, FileAccess::WRITE);
-        if (output.is_null() || !output->is_open()) {
-            fail_install(vformat("Unable to stage file: %s", relative_path));
-            return;
-        }
-        output->store_buffer(contents);
-        const Error write_error = output->get_error();
-        output->close();
-        if (write_error != OK) {
-            fail_install(vformat("Unable to finish writing staged file: %s", relative_path));
-            return;
-        }
-
-        ++extracted_file_count;
-        has_extension_descriptor = has_extension_descriptor || relative_path == "orchestrator.gdextension";
+        staged_files[relative_path.utf8().get_data()] = entry.size;
     }
-    reader->close();
 
-    if (extracted_file_count == 0 || !has_extension_descriptor) {
-        remove_tree(stage_path);
-        _show_failure("The archive is not a complete Redotchestrator plugin package.");
+    Ref<ConfigFile> descriptor = memnew(ConfigFile);
+    if (descriptor->load(stage_path.path_join("orchestrator.gdextension")) != OK
+        || !descriptor->has_section("libraries")) {
+        fail_install("The archive has no readable extension descriptor.");
+        return;
+    }
+    const PackedStringArray features = descriptor->get_section_keys("libraries");
+    if (features.is_empty()) {
+        fail_install("The extension descriptor has no libraries.");
+        return;
+    }
+    for (const std::string_view document : REQUIRED_PACKAGE_DOCUMENTS) {
+        if (!staged_files.contains(std::string(document)) || !staged_files[std::string(document)]) {
+            fail_install("A required redistribution document is missing or empty.");
+            return;
+        }
+    }
+    for (const std::string_view feature : REQUIRED_LIBRARY_FEATURES) {
+        if (!features.has(String::utf8(feature.data()))) {
+            fail_install("The descriptor omits a required platform library.");
+            return;
+        }
+    }
+    for (const String& feature : features) {
+        const String library = descriptor->get_value("libraries", feature);
+        const String prefix = "res://addons/orchestrator/";
+        if (!library.begins_with(prefix) || !is_safe_archive_path(library.substr(6))) {
+            fail_install("The descriptor contains an unsafe library path.");
+            return;
+        }
+        const std::string relative = library.substr(prefix.length()).utf8().get_data();
+        if (!has_update_library(staged_files, feature.utf8().get_data(), relative)) {
+            fail_install("A required extension library is missing or empty.");
+            return;
+        }
+    }
+    // A pending or orphaned backup is recovery evidence, never disposable staging data.
+    if (FileAccess::file_exists(get_update_record_path()) || DirAccess::dir_exists_absolute(backup_path)
+        || FileAccess::file_exists(backup_path)) {
+        fail_install("A previous update needs recovery before another update can be installed.");
+        return;
+    }
+    Dictionary transaction;
+    transaction["version"] = _expected_tag;
+    transaction["stage"] = stage_path.get_file();
+    const PackedByteArray record = JSON::stringify(transaction).to_utf8_buffer();
+    if (!write_update_file(native_path(get_update_record_path()),
+            { record.ptr(), static_cast<size_t>(record.size()) }, project_root)) {
+        fail_install("Unable to persist the update recovery record.");
         return;
     }
 
-    error = remove_tree(backup_path);
-    if (error != OK) {
-        remove_tree(stage_path);
-        _show_failure("Unable to clear the previous update backup. No project files were changed.");
+    // Persist all recovery state while the verified stage is still pinned.
+    if (!plain_update_path(stage_path, false) || !plain_update_path(target_path, false)
+        || !plain_update_path(backup_path)) {
+        DirAccess::remove_absolute(get_update_record_path());
+        fail_install("Update directories contain a link or junction. Update manually.");
         return;
     }
-
     error = DirAccess::rename_absolute(target_path, backup_path);
     if (error != OK) {
-        remove_tree(stage_path);
-        _show_failure("Unable to back up the installed plugin. No project files were changed.");
+        DirAccess::remove_absolute(get_update_record_path());
+        fail_install("Unable to back up the installed plugin. No project files were changed.");
         return;
     }
 
-    error = DirAccess::rename_absolute(stage_path, target_path);
+    if (!plain_update_path(stage_path, false) || !plain_update_path(target_path)) {
+        error = ERR_CANT_OPEN;
+    } else {
+#ifdef _WIN32
+        // Release child handles but retain the staging root's identity through its rename.
+        directory_locks.resize(1);
+        error = directory_locks.front()->rename_to(activation_rename) ? OK : ERR_CANT_CREATE;
+#else
+        directory_locks.clear();
+        error = DirAccess::rename_absolute(stage_path, target_path);
+#endif
+    }
+    directory_locks.clear();
     if (error != OK) {
-        const Error rollback_error = DirAccess::rename_absolute(backup_path, target_path);
+        const Error rollback_error = plain_update_path(backup_path, false) && plain_update_path(target_path)
+            ? DirAccess::rename_absolute(backup_path, target_path) : ERR_CANT_OPEN;
         if (rollback_error == OK) {
+            DirAccess::remove_absolute(get_update_record_path());
             remove_tree(stage_path);
         }
         const String message = rollback_error == OK
             ? "Unable to activate the staged update; the previous plugin was restored."
             : vformat("Update and automatic rollback failed. Restore '%s' to '%s' before reopening the project.",
-                backup_path, target_path);
+                String("res://addons/.redotchestrator-update-backup"), String("res://addons/orchestrator"));
         _show_failure(message);
         return;
     }
 
-    DirAccess::remove_absolute(file_name);
     _status->set_visible(false);
 
     AcceptDialog* dialog = memnew(AcceptDialog);
     dialog->set_title("Redotchestrator Update Installed");
     dialog->set_text(vformat(
-        "Redotchestrator %s was verified, staged, and installed atomically. Restart Redot to load it.",
+        "Redotchestrator %s was verified, staged, and installed. Restart Redot to load it.",
         _expected_tag));
     dialog->set_ok_button_text("Restart");
     add_child(dialog);
@@ -743,8 +843,6 @@ OrchestratorUpdaterVersionPicker::OrchestratorUpdaterVersionPicker() {
     vbox->add_child(_status);
 
     _download = memnew(HTTPRequest);
-    const String cache_dir = EI->get_editor_paths()->get_cache_dir();
-    _download->set_download_file(cache_dir.path_join("tmp_redotchestrator_update.zip"));
     _download->set_use_threads(true);
     _download->set_accept_gzip(false);
     _download->set_timeout(60.0);
@@ -773,8 +871,7 @@ Error OrchestratorUpdaterButton::_send_http_request(const String& p_url, const S
         "request_completed",
         callable_mp_lambda(this, [=] (int p_result, int p_code, const PackedStringArray& p_headers, const PackedByteArray& p_data) {
             static_cast<void>(p_headers);
-            static_cast<void>(p_data);
-            if (p_result == HTTPRequest::RESULT_SUCCESS && p_code == 200) {
+                    if (p_result == HTTPRequest::RESULT_SUCCESS && p_code == 200) {
                 p_callback.call();
             } else {
                 DirAccess::remove_absolute(p_filename);
@@ -1015,13 +1112,16 @@ void OrchestratorUpdaterButton::_notification(int p_what) {
         case NOTIFICATION_ENTER_TREE: {
             set_visible(false);
 
+            if (!plain_update_paths(get_update_stage_path())) {
+                WARN_PRINT("Redotchestrator self-update requires plain project addon directories without links or junctions. Update manually.");
+                break;
+            }
             const Error stage_cleanup = remove_tree(get_update_stage_path());
             if (stage_cleanup != OK) {
                 WARN_PRINT(vformat("Unable to remove stale Redotchestrator update staging directory (error %d).", stage_cleanup));
             }
-            const Error backup_cleanup = remove_tree(get_update_backup_path());
-            if (backup_cleanup != OK) {
-                WARN_PRINT(vformat("Unable to remove the previous Redotchestrator update backup (error %d).", backup_cleanup));
+            if (!recover_update()) {
+                WARN_PRINT("A Redotchestrator update is pending recovery. Preserve addons/.redotchestrator-update-backup.");
             }
 
             if (DisplayServer::get_singleton()->get_name() == "headless") {

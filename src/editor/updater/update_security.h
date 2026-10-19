@@ -125,6 +125,13 @@ namespace redotchestrator::updater {
         return true;
     }
 
+    inline bool is_bounded_version_component(std::string_view p_value) {
+        uint64_t value = 0;
+        if (!is_ascii_digits(p_value)) { return false; }
+        const auto result = std::from_chars(p_value.data(), p_value.data() + p_value.size(), value);
+        return result.ec == std::errc() && value <= 0x7fffffffffffffffULL;
+    }
+
     inline bool is_valid_release_status(std::string_view p_status) {
         if (p_status == "stable") {
             return true;
@@ -132,7 +139,7 @@ namespace redotchestrator::updater {
         for (const std::string_view prefix : { std::string_view("rc"), std::string_view("dev") }) {
             if (p_status.starts_with(prefix)) {
                 const std::string_view suffix = p_status.substr(prefix.size());
-                return suffix.empty() || is_ascii_digits(suffix);
+                return suffix.empty() || is_bounded_version_component(suffix);
             }
         }
         return false;
@@ -161,10 +168,10 @@ namespace redotchestrator::updater {
         if (!reached_end || (component_count != 3 && component_count != 4)) {
             return false;
         }
-        if (!is_ascii_digits(components[0]) || !is_ascii_digits(components[1])) {
+        if (!is_bounded_version_component(components[0]) || !is_bounded_version_component(components[1])) {
             return false;
         }
-        if (component_count == 4 && !is_ascii_digits(components[2])) {
+        if (component_count == 4 && !is_bounded_version_component(components[2])) {
             return false;
         }
         return is_valid_release_status(components[component_count - 1]);
