@@ -118,6 +118,8 @@ runs:
         cp '${{ github.workspace }}/LICENSE' '${{ github.workspace }}/project/addons/orchestrator/'
         cp '${{ github.workspace }}/MODIFICATIONS.md' '${{ github.workspace }}/project/addons/orchestrator/'
         cp '${{ github.workspace }}/ASSET_LICENSES.md' '${{ github.workspace }}/project/addons/orchestrator/'
+        mkdir -p '${{ github.workspace }}/project/addons/orchestrator/THIRD_PARTY_LICENSES'
+        cp '${{ github.workspace }}/extern/godot-cpp/LICENSE.md' '${{ github.workspace }}/project/addons/orchestrator/THIRD_PARTY_LICENSES/redot-cpp-LICENSE.md'
 
     # Creates a demo archive of this specific build, including only the "project" subfolder
     - name: Upload artifact (Demo)
