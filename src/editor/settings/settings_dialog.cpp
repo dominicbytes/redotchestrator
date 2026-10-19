@@ -19,6 +19,7 @@
 #include "common/macros.h"
 #include "common/scene_utils.h"
 #include "common/settings.h"
+#include "common/version.h"
 #include "core/godot/scene_string_names.h"
 #include "editor/gui/search_dialog.h"
 #include "editor/settings/editor_settings.h"
@@ -28,9 +29,11 @@
 
 #include <godot_cpp/classes/editor_interface.hpp>
 #include <godot_cpp/classes/editor_settings.hpp>
+#include <godot_cpp/classes/editor_undo_redo_manager.hpp>
 #include <godot_cpp/classes/input_event_key.hpp>
 #include <godot_cpp/classes/project_settings.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
+#include <godot_cpp/classes/undo_redo.hpp>
 
 void OrchestratorEditorSettingsDialog::_confirmed() {
     if (!OrchestratorSettings::get_singleton()) {
@@ -59,13 +62,11 @@ void OrchestratorEditorSettingsDialog::_shortcut_input(const Ref<InputEvent>& p_
 
         if (EditorNode) {
             if (ED_IS_SHORTCUT("ui_undo", p_event)) {
-                // todo: not sure if there is anything we do here
-                // EditorNode::get_singleton()->undo();
+                EI->get_editor_undo_redo()->get_history_undo_redo(EditorUndoRedoManager::GLOBAL_HISTORY)->undo();
                 handled = true;
             }
             if (ED_IS_SHORTCUT("ui_redo", p_event)) {
-                // todo: not sure if there is anything we do here
-                // EditorNode::get_singleton()->redo();
+                EI->get_editor_undo_redo()->get_history_undo_redo(EditorUndoRedoManager::GLOBAL_HISTORY)->redo();
                 handled = true;
             }
         }
@@ -119,7 +120,7 @@ void OrchestratorEditorSettingsDialog::_bind_methods() {
 }
 
 OrchestratorEditorSettingsDialog::OrchestratorEditorSettingsDialog() {
-    set_title("Orchestrator Settings");
+    set_title(VERSION_NAME " Settings");
     set_ok_button_text("Close");
     #if GODOT_VERSION >= 0x040500
     set_flag(FLAG_MAXIMIZE_DISABLED, false);

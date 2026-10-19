@@ -62,5 +62,5 @@ public:
     ClipboardResult paste(const Ref<OrchestrationGraph>& p_target, const Vector2& p_offset, bool p_snapping_enabled, int p_snapping_distance);
     ClipboardResult duplicate(const Vector<OrchestratorEditorGraphNode*>& p_nodes, const Ref<OrchestrationGraph>& p_graph, const Vector2& p_offset);
 
-    void clear();
+    static void clear();
 };

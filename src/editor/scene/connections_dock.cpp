@@ -55,10 +55,9 @@ void OrchestratorEditorConnectionsDock::_go_to_method(TreeItem* p_item) {
     ERR_FAIL_NULL(p_item);
 
     const Dictionary connection = p_item->get_metadata(0);
-    const Signal& signal = connection["signal"];
     const Callable& callable = connection["callable"];
 
-    Node* object = cast_to<Node>(ObjectDB::get_instance(signal.get_object_id()));
+    Node* object = cast_to<Node>(ObjectDB::get_instance(callable.get_object_id()));
     if (!object) {
         return;
     }
@@ -102,13 +101,15 @@ bool OrchestratorEditorConnectionsDock::disconnect_slot(const Ref<Script>& p_scr
             if (Node* source = cast_to<Node>(ObjectDB::get_instance(signal.get_object_id()))) {
                 source->disconnect(signal.get_name(), callable);
 
-                _connections_dock->call("update_tree");
-                _scene_tree_editor->call("update_tree");
-
                 result = true;
-                break;
             }
         }
+    }
+
+    if (result) {
+        _connections_dock->call("update_tree");
+        _scene_tree_editor->call("update_tree");
+        EI->mark_scene_as_unsaved();
     }
 
     return result;

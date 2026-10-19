@@ -1349,7 +1349,7 @@ OrchestratorScriptComponentsContainer::OrchestratorScriptComponentsContainer() {
     _add_function_override = memnew(Button);
     _add_function_override->set_focus_mode(FOCUS_NONE);
     _add_function_override->set_button_icon(SceneUtils::get_editor_icon("Override"));
-    _add_function_override->set_tooltip_text("Override a Godot virtual function");
+    _add_function_override->set_tooltip_text("Override a Redot virtual function");
     _add_function_override->connect(SceneStringName(pressed), callable_mp_signal_lambda("add_function_override_requested"));
 
     _functions = memnew(OrchestratorEditorComponentView);

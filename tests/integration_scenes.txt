@@ -24,6 +24,7 @@ features/call_native_static_method_validated.tscn
 features/call_script_method_init.tscn
 features/constants_are_read_only.tscn
 features/coroutine_clearing.tscn
+features/d_dialogue_typewriter.tscn
 features/dictionaries_arent_shared.tscn
 features/dictionary_string_stringname_equivalent.tscn
 features/does_not_override_temp_values.tscn

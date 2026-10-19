@@ -22,6 +22,7 @@
 #include "core/godot/scene_string_names.h"
 #include "editor/editor.h"
 #include "editor/export/orchestration_export_plugin.h"
+#include "editor/graph/graph_clipboard.h"
 #include "editor/gui/window_wrapper.h"
 #include "editor/inspector/function_inspector_plugin.h"
 #include "editor/inspector/orchestration_inspector_plugin.h"
@@ -342,7 +343,7 @@ String OrchestratorPlugin::_get_unsaved_status(const String& p_for_scene) const 
         return String("\n").join(message);
     }
 
-    message.push_back("Save changes to the following Orchestrator file(s) before quitting?");
+    message.push_back("Save changes to the following redotchestrator file(s) before quitting?");
     for (const String& E : unsaved_scripts) {
         message.push_back(E.trim_suffix("(*)"));
     }
@@ -504,6 +505,8 @@ void OrchestratorPlugin::_notification(int p_what) {
             break;
         }
         case NOTIFICATION_EXIT_TREE: {
+            OrchestratorEditorGraphClipboard::clear();
+
             disconnect("main_screen_changed", callable_mp_this(_main_screen_changed));
 
             _unregister_plugins();
