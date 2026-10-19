@@ -41,6 +41,43 @@ class ImportResultTests(unittest.TestCase):
         self.assertEqual(1, failure.exception.code)
         self.assertIn("-1073741819", diagnostics.getvalue())
 
+    def test_known_263_shutdown_leaks_are_tolerated_on_import_only(self):
+        stderr = (
+            'WARNING: 2 RIDs of type "Canvas" were leaked.\n'
+            '   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2698)\n'
+            "ERROR: 2 RID allocations of type 'N16RendererViewport8ViewportE' were leaked at exit.\n"
+            "WARNING: ObjectDB instances leaked at exit (run with --verbose for details).\n"
+            "   at: cleanup (core/object/object.cpp:2568)\n")
+        result = subprocess.CompletedProcess([], 0, "", stderr)
+        with patch.object(RUNNER, "engine_version", "26.3.stable.official.85e520394"), \
+                patch.object(RUNNER.subprocess, "run", return_value=result), \
+                contextlib.redirect_stdout(io.StringIO()):
+            RUNNER.import_project()
+
+    def test_known_leaks_do_not_hide_other_import_errors(self):
+        stderr = ("ERROR: 2 RID allocations of type 'N16RendererViewport8ViewportE' were leaked at exit.\n"
+                  "ERROR: resource failed\n")
+        result = subprocess.CompletedProcess([], 0, "", stderr)
+        diagnostics = io.StringIO()
+        with patch.object(RUNNER, "engine_version", "26.3.stable.official.85e520394"), \
+                patch.object(RUNNER.subprocess, "run", return_value=result), \
+                contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(diagnostics), self.assertRaises(SystemExit) as failure:
+            RUNNER.import_project()
+        self.assertEqual(1, failure.exception.code)
+        self.assertIn("ERROR: resource failed", diagnostics.getvalue())
+
+    def test_leaks_are_not_tolerated_on_other_engines_or_after_a_crash(self):
+        stderr = "ERROR: 2 RID allocations of type 'N16RendererViewport8ViewportE' were leaked at exit.\n"
+        for version, code in (("26.2.stable.official.0", 0), ("26.3.stable.official.0", -1073741819)):
+            result = subprocess.CompletedProcess([], code, "", stderr)
+            with self.subTest(version=version, code=code), \
+                    patch.object(RUNNER, "engine_version", version), \
+                    patch.object(RUNNER.subprocess, "run", return_value=result), \
+                    contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                RUNNER.import_project()
+
 
 if __name__ == "__main__":
     unittest.main()
