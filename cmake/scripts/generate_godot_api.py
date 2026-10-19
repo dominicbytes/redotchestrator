@@ -14,6 +14,7 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
+import hashlib
 import os
 import sys
 import zlib
@@ -51,7 +52,7 @@ def make_api_source(api_data, target):
         f.write("\n")
         f.write("#include <godot_cpp/variant/packed_byte_array.hpp>\n")
         f.write("\n")
-        f.write(f"static const char* _api_data_hash = \"{hash(buf)}\";\n")
+        f.write(f"static const char* _api_data_hash = \"{hashlib.sha256(buf).hexdigest()[:16]}\";\n")
         f.write(f"static const int _api_data_uncompressed_size = {decomp_size};\n")
         f.write(f"static const int _api_data_compressed_size = {len(buf)};\n")
         f.write("static const unsigned char _api_data_compressed[] = {\n")

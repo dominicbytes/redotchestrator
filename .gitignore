@@ -66,3 +66,6 @@ CMakeUserLists.txt
 # Python
 venv/
 .venv/
+
+# Local working notes
+/docs/gamedev/

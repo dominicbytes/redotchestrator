@@ -141,3 +141,31 @@
   releases from notifications. The new Linux 26.3 job tests the same editor
   artifact used by 26.2. Engine shutdown failures stay visible; no crash or leak
   suppression is added to CI.
+
+## ADR-0024: Reserve downstream maintenance versions
+
+- Date: 2026-10-19.
+- Status: accepted and implemented.
+- Decision: use `v2.5.200.stable` for the next downstream release and reserve
+  maintenance numbers 200 through 255 for this fork's 2.5 line. Preserve all
+  inherited upstream tags. The package is
+  `redotchestrator-v2.5.200.stable-plugin.zip`.
+- Rationale: `v2.5.stable` is inherited and upstream's 2.5.1 release line must
+  remain available for future imports. A high downstream maintenance number
+  avoids that line while remaining within the one-byte maintenance encoding
+  in `VERSION_HEX`. No numeric reservation can prohibit a future upstream
+  choice; verify tag availability again before each release.
+- Parser evaluation: `tools/package_release.py` derives the tag from major,
+  minor, nonzero maintenance and status; `.github/workflows/runner.yml` derives
+  the archive name directly from the tag. Both the package validator and updater
+  accept only numeric version components and `stable`, `rcN` or `devN` status.
+  `OrchestratorVersion` parses and orders maintenance numerically and recognizes
+  `stable` for normal update notifications. This choice requires no parser change.
+- Alternatives: downstream status suffixes or extra dot components are rejected
+  by the validators; `version_build` and `version_module_config` affect display
+  identity but do not enter release tags or updater comparisons. A small
+  maintenance increment risks colliding with upstream's next maintenance release.
+- Consequences: keep `VERSION`, release examples, lock metadata and package
+  expectations aligned. Re-evaluate the reservation before exhausting it or
+  merging an upstream release that uses the same number. Do not move an upstream
+  tag to release downstream code.
