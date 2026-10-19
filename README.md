@@ -74,7 +74,7 @@ Do not substitute binaries from the upstream Godot release. They target Godot
 
 ## Build from source
 
-Clone with submodules, then use the preset for the intended target. CMake 3.20+
+Clone with submodules, then use the preset for the intended target. CMake 3.23+
 and a C++20 compiler are required.
 
 ```powershell
@@ -98,7 +98,10 @@ python tests/run_integration_tests.py --redot-binary "$env:REDOT_BIN" --no-color
 
 The test runner never downloads or falls back to Godot. It bounds both import
 and per-scene execution, uses Dummy audio, and fails on import stderr even when
-the engine exits zero. For an independently diagnosed editor shutdown defect,
+the engine exits zero. It checks discovery against `tests/integration_scenes.txt`,
+requires expected `.out` files, reports metadata version exclusions as skips,
+and rejects an empty applicable selection. Update the inventory when adding or
+removing a fixture. For an independently diagnosed editor shutdown defect,
 `--skip-import` can run fixtures in a scratch project already imported by a
 compatible editor; this does not qualify the failed editor import. Native updater checks are enabled with
 `REDOTCHESTRATOR_BUILD_TESTS=ON`, and deterministic release-package checks live
@@ -118,8 +121,8 @@ from update notifications. ZIP entries must remain under
 rejected. Installation uses a staging directory, backup, atomic directory
 activation, and rollback on activation failure.
 
-Release tags must match `VERSION` (currently `v2.5.1.stable`). The release script
-builds a deterministic `redotchestrator-v2.5.1.stable-plugin.zip`, verifies every
+Release tags must match `VERSION` (currently `v2.5.200.stable`). The release script
+builds a deterministic `redotchestrator-v2.5.200.stable-plugin.zip`, verifies every
 library referenced by the descriptor, rejects development artifacts and removed
 artwork, and emits the manifest consumed by the updater.
 

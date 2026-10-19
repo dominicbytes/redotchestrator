@@ -14,7 +14,7 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.23 FATAL_ERROR)
 
 SET(GDEXTENSION_LIB_NAME orchestrator)
 SET(GDEXTENSION_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/project/addons/orchestrator")

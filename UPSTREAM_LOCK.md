@@ -64,8 +64,8 @@ SDK is pinned to commit `d49219d03a41cd12f95a33ba84273c20d41fd350`
 
 ## Release identity
 
-- VERSION tag: `v2.5.1.stable`
-- Archive: `redotchestrator-v2.5.1.stable-plugin.zip`
+- VERSION tag: `v2.5.200.stable`
+- Archive: `redotchestrator-v2.5.200.stable-plugin.zip`
 - Archive root: `addons/orchestrator/`
 - Manifest asset: `release_manifests.json`
 - Minimum compatibility field: `v26.2.0`
