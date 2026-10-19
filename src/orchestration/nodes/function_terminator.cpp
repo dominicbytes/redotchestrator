@@ -78,6 +78,18 @@ bool OScriptNodeFunctionTerminator::create_pins_for_function_entry_exit(const Re
     return pins_good;
 }
 
+void OScriptNodeFunctionTerminator::set_function(const Ref<OScriptFunction>& p_function) {
+    if (_function.is_valid()) {
+        ODISCONNECT(_function, "changed", callable_mp_this(_on_function_changed));
+    }
+    _function = p_function;
+    _guid = p_function->get_guid();
+    if (_is_in_editor()) {
+        OCONNECT(_function, "changed", callable_mp_this(_on_function_changed));
+    }
+    reconstruct_node();
+}
+
 void OScriptNodeFunctionTerminator::post_initialize() {
     super::post_initialize();
 

@@ -252,6 +252,10 @@ void Orchestration::_fix_orphans() {
 void Orchestration::_connect_nodes(int p_source_id, int p_source_port, int p_target_id, int p_target_port) {
     ERR_FAIL_COND_MSG(_has_instances(), "Cannot connect nodes, instances exist.");
 
+    const Ref<OScriptNodeReroute> target = get_node(p_target_id);
+    ERR_FAIL_COND_MSG(target.is_valid() && target->would_create_cycle(get_node(p_source_id).ptr()),
+        "Cannot connect a reroute cycle.");
+
     OScriptConnection connection;
     connection.from_node = p_source_id;
     connection.from_port = p_source_port;
@@ -980,6 +984,13 @@ Ref<OScriptFunction> Orchestration::duplicate_function(const StringName& p_name,
     if (!new_function.is_valid()) {
         remove_graph(new_graph->get_graph_name());
         return nullptr;
+    }
+
+    for (const Ref<OScriptNode>& node : new_graph->get_nodes()) {
+        const Ref<OScriptNodeFunctionTerminator> terminator = node;
+        if (terminator.is_valid()) {
+            terminator->set_function(new_function);
+        }
     }
 
     old_graph->emit_changed();

@@ -28,7 +28,16 @@ void OScriptNodeReroute::_apply_type(ERerouteType p_new_type) {
     _notify_pins_changed();
 }
 
-Ref<OScriptNodePin> OScriptNodeReroute::_resolve_target_pin() const {
+Ref<OScriptNodePin> OScriptNodeReroute::_resolve_target_pin(HashSet<int>* p_visited) const {
+    HashSet<int> visited;
+    if (!p_visited) {
+        p_visited = &visited;
+    }
+    if (p_visited->has(_id)) {
+        return {};
+    }
+    p_visited->insert(_id);
+
     const Ref<OScriptNodePin> out = find_pin("output", PD_Output);
     if (!out.is_valid()) {
         return {};
@@ -37,7 +46,7 @@ Ref<OScriptNodePin> OScriptNodeReroute::_resolve_target_pin() const {
     for (const Ref<OScriptNodePin>& connected : out->get_connections()) {
         OScriptNodeReroute* downstream = cast_to<OScriptNodeReroute>(connected->get_owning_node());
         if (downstream) {
-            Ref<OScriptNodePin> result = downstream->_resolve_target_pin();
+            Ref<OScriptNodePin> result = downstream->_resolve_target_pin(p_visited);
             if (result.is_valid()) {
                 return result;
             }
@@ -49,7 +58,16 @@ Ref<OScriptNodePin> OScriptNodeReroute::_resolve_target_pin() const {
     return {};
 }
 
-void OScriptNodeReroute::_cascade_resolve_from_target() {
+void OScriptNodeReroute::_cascade_resolve_from_target(HashSet<int>* p_visited) {
+    HashSet<int> visited;
+    if (!p_visited) {
+        p_visited = &visited;
+    }
+    if (p_visited->has(_id)) {
+        return;
+    }
+    p_visited->insert(_id);
+
     // Uses Orchestration connections directly.
     // Pin objects on this node may be stale (cleared and not yet repopulated) if the _notify_pins_changed
     // is triggered from a synchronous rebuild.
@@ -76,11 +94,20 @@ void OScriptNodeReroute::_cascade_resolve_from_target() {
             downstream->_apply_type(REROUTE_ANY);
         }
 
-        downstream->_cascade_resolve_from_target();
+        downstream->_cascade_resolve_from_target(p_visited);
     }
 }
 
-void OScriptNodeReroute::_cascade_type_downstream() {
+void OScriptNodeReroute::_cascade_type_downstream(HashSet<int>* p_visited) {
+    HashSet<int> visited;
+    if (!p_visited) {
+        p_visited = &visited;
+    }
+    if (p_visited->has(_id)) {
+        return;
+    }
+    p_visited->insert(_id);
+
     const Ref<OScriptNodePin> out = find_pin("output", PD_Output);
     if (!out.is_valid()) {
         return;
@@ -98,8 +125,37 @@ void OScriptNodeReroute::_cascade_type_downstream() {
             // Same reroute type, so rebuild using allocate_default_pins, which picks up the data type.
             downstream->_notify_pins_changed();
         }
-        downstream->_cascade_type_downstream();
+        downstream->_cascade_type_downstream(p_visited);
     }
+}
+
+bool OScriptNodeReroute::would_create_cycle(const OScriptNode* p_source) const {
+    if (!p_source || !p_source->is_reroute()) {
+        return false;
+    }
+    HashSet<int> visited;
+    Vector<int> pending;
+    pending.push_back(_id);
+    while (!pending.is_empty()) {
+        const int current = pending[pending.size() - 1];
+        pending.remove_at(pending.size() - 1);
+        if (current == p_source->get_id()) {
+            return true;
+        }
+        if (visited.has(current)) {
+            continue;
+        }
+        visited.insert(current);
+        for (const OScriptConnection& C : get_orchestration()->get_connections()) {
+            if (static_cast<int>(C.from_node) == current) {
+                const Ref<OScriptNode> target = get_orchestration()->get_node(C.to_node);
+                if (target.is_valid() && target->is_reroute()) {
+                    pending.push_back(C.to_node);
+                }
+            }
+        }
+    }
+    return false;
 }
 
 void OScriptNodeReroute::force_reroute_type(ERerouteType p_type) {
@@ -150,7 +206,9 @@ void OScriptNodeReroute::allocate_default_pins() {
             // There was no input source, so walk the output chain to derive the type at the target
             if (data_type == Variant::NIL) {
                 int walk_node = _id;
-                while (true) {
+                HashSet<int> visited;
+                while (!visited.has(walk_node)) {
+                    visited.insert(walk_node);
                     bool advanced = false;
                     for (const OScriptConnection& C : get_orchestration()->get_connections()) {
                         if (static_cast<int>(C.from_node) != walk_node || C.from_port != 0) {

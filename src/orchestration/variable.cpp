@@ -336,6 +336,9 @@ bool OScriptVariable::_convert_default_value(Variant::Type p_new_type) {
 
         Array default_value;
         default_value.set_typed(builtin, class_name, script);
+        if (_default_value.get_type() == Variant::ARRAY) {
+            default_value.assign(_default_value);
+        }
 
         set_default_value(default_value);
         return true;
@@ -351,6 +354,9 @@ bool OScriptVariable::_convert_default_value(Variant::Type p_new_type) {
 
             Dictionary dict;
             dict.set_typed(key_builtin, key_class_name, key_script, value_builtin, value_class_name, value_script);
+            if (_default_value.get_type() == Variant::DICTIONARY) {
+                dict.assign(_default_value);
+            }
 
             set_default_value(dict);
             return true;
@@ -467,7 +473,13 @@ bool OScriptVariable::is_exportable() const {
 }
 
 void OScriptVariable::set_default_value(const Variant& p_default_value) {
-    if (_default_value != p_default_value) {
+    const bool array_typing_changed = _default_value.get_type() == Variant::ARRAY
+        && p_default_value.get_type() == Variant::ARRAY
+        && !Array(_default_value).is_same_typed(p_default_value);
+    const bool dictionary_typing_changed = _default_value.get_type() == Variant::DICTIONARY
+        && p_default_value.get_type() == Variant::DICTIONARY
+        && !Dictionary(_default_value).is_same_typed(p_default_value);
+    if (_default_value != p_default_value || array_typing_changed || dictionary_typing_changed) {
         _default_value = p_default_value;
         emit_changed();
 
@@ -493,6 +505,11 @@ void OScriptVariable::copy_persistent_state(const Ref<OScriptVariable>& p_other)
         _category = p_other->_category;
         _constant = p_other->_constant;
         _default_value = p_other->_default_value;
+        if (_default_value.get_type() == Variant::ARRAY) {
+            _default_value = Array(_default_value).duplicate(true);
+        } else if (_default_value.get_type() == Variant::DICTIONARY) {
+            _default_value = Dictionary(_default_value).duplicate(true);
+        }
         _description = p_other->_description;
         _exported = p_other->_exported;
 

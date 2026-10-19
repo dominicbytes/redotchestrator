@@ -377,8 +377,13 @@ void OScriptGraph::remove_all_nodes() {
 }
 
 void OScriptGraph::move_node_to(const Ref<OScriptNode>& p_node, const Ref<OScriptGraph>& p_target) {
+    ERR_FAIL_COND(p_target.is_null() || p_target->get_orchestration() != _orchestration);
+    ERR_FAIL_COND(p_node.is_null() || !has_node(p_node->get_id()));
+    if (p_target.ptr() == this) {
+        return;
+    }
     remove_node(p_node);
-    _orchestration->add_node(p_target, p_node);
+    p_target->add_node(p_node);
 }
 
 Ref<OScriptNode> OScriptGraph::copy_node(int p_node_id, bool p_duplicate_resources) {

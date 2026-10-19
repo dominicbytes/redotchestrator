@@ -294,15 +294,13 @@ void OScriptNodeCallFunction::add_dynamic_pin() {
 }
 
 bool OScriptNodeCallFunction::can_remove_dynamic_pin(const Ref<OScriptNodePin>& p_pin) const {
-    if (p_pin.is_valid() && !p_pin->is_execution() && can_add_dynamic_pin()) {
-        for (const PropertyInfo& pi : _reference.method.arguments) {
-            if (pi.name.match(p_pin->get_pin_name())) {
-                return false;
-            }
-        }
-        return true;
+    if (_vararg_count <= 0 || p_pin.is_null() || !p_pin->is_input()
+        || p_pin->is_execution() || !can_add_dynamic_pin()) {
+        return false;
     }
-    return false;
+    const Vector<Ref<OScriptNodePin>> inputs = find_pins(PD_Input);
+    const int index = inputs.find(p_pin);
+    return index >= 0 && index >= inputs.size() - _vararg_count;
 }
 
 void OScriptNodeCallFunction::remove_dynamic_pin(const Ref<OScriptNodePin>& p_pin) {

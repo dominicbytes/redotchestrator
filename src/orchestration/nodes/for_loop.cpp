@@ -43,8 +43,7 @@ bool OScriptNodeForLoop::_get(const StringName& p_name, Variant& r_value) const 
 
 bool OScriptNodeForLoop::_set(const StringName& p_name, const Variant& p_value) {
     if (p_name.match("with_break")) {
-        _with_break = p_value;
-        _notify_pins_changed();
+        _set_with_break(p_value);
         return true;
     } else if (p_name.match("start")) {
         _start_index = p_value;
@@ -158,8 +157,21 @@ void OScriptNodeForLoop::initialize(const OScriptNodeInitContext& p_context) {
 }
 
 void OScriptNodeForLoop::_set_with_break(bool p_break_status) {
+    if (_with_break == p_break_status) {
+        return;
+    }
+    if (!p_break_status) {
+        const Ref<OScriptNodePin> break_pin = find_pin("break", PD_Input);
+        const Ref<OScriptNodePin> aborted = find_pin("aborted", PD_Output);
+        if (break_pin.is_valid()) {
+            break_pin->unlink_all();
+        }
+        if (aborted.is_valid()) {
+            aborted->unlink_all();
+        }
+    }
     _with_break = p_break_status;
-    reconstruct_node();
+    _notify_pins_changed();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,8 +192,7 @@ bool OScriptNodeForEach::_get(const StringName& p_name, Variant& r_value) const 
 
 bool OScriptNodeForEach::_set(const StringName& p_name, const Variant& p_value) {
     if (p_name.match("with_break")) {
-        _with_break = p_value;
-        _notify_pins_changed();
+        _set_with_break(p_value);
         return true;
     }
     return false;
@@ -291,6 +302,19 @@ void OScriptNodeForEach::initialize(const OScriptNodeInitContext& p_context) {
 }
 
 void OScriptNodeForEach::_set_with_break(bool p_break_status) {
+    if (_with_break == p_break_status) {
+        return;
+    }
+    if (!p_break_status) {
+        const Ref<OScriptNodePin> break_pin = find_pin("break", PD_Input);
+        const Ref<OScriptNodePin> aborted = find_pin("aborted", PD_Output);
+        if (break_pin.is_valid()) {
+            break_pin->unlink_all();
+        }
+        if (aborted.is_valid()) {
+            aborted->unlink_all();
+        }
+    }
     _with_break = p_break_status;
-    reconstruct_node();
+    _notify_pins_changed();
 }
