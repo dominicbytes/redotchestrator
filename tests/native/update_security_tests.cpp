@@ -1,4 +1,9 @@
 #include "editor/updater/update_security.h"
+#include "editor/updater/update_archive.h"
+#include "editor/updater/update_filesystem.h"
+#include <fstream>
+#include <iterator>
+#include <string>
 
 #include <iostream>
 #include <string_view>
@@ -14,7 +19,40 @@ namespace {
     }
 }
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "--paths") {
+        for (std::string path; std::getline(std::cin, path);) {
+            std::cout << redotchestrator::updater::is_safe_plugin_archive_path(path) << '\n';
+        }
+        return 0;
+    }
+    if (argc == 2 && std::string_view(argv[1]) == "--tags") {
+        for (std::string value; std::getline(std::cin, value);) {
+            std::cout << redotchestrator::updater::is_valid_release_tag(value) << '\n';
+        }
+        return 0;
+    }
+    if (argc == 2 && std::string_view(argv[1]) == "--contract") {
+        std::cout << "limit:asset:" << redotchestrator::updater::MAX_ARCHIVE_SIZE << '\n';
+        std::cout << "limit:expanded:" << redotchestrator::updater::MAX_EXTRACTED_SIZE << '\n';
+        std::cout << "limit:entries:" << redotchestrator::updater::MAX_ARCHIVE_ENTRIES << '\n';
+        for (const auto value : redotchestrator::updater::REQUIRED_LIBRARY_FEATURES) {
+            std::cout << "feature:" << value << '\n';
+        }
+        for (const auto value : redotchestrator::updater::REQUIRED_PACKAGE_DOCUMENTS) {
+            std::cout << "document:" << value << '\n';
+        }
+        return 0;
+    }
+    if (argc == 3 && std::string_view(argv[1]) == "--remove-tree") {
+        return redotchestrator::updater::remove_update_tree(redotchestrator::updater::update_native_path(argv[2])) ? 0 : 1;
+    }
+    if (argc == 3 && std::string_view(argv[1]) == "--archive") {
+        std::ifstream input(redotchestrator::updater::update_native_path(argv[2]), std::ios::binary);
+        const std::vector<uint8_t> bytes((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+        std::vector<redotchestrator::updater::ArchiveEntry> entries;
+        return redotchestrator::updater::inspect_archive(bytes, entries) ? 0 : 1;
+    }
     using namespace redotchestrator::updater;
 
     expect(is_safe_plugin_archive_path("addons/orchestrator/orchestrator.gdextension"), "valid descriptor path");
@@ -85,6 +123,88 @@ int main() {
         "https://github.com/dominicbytes/redotchestrator/releases/tag/v2.5.stable"),
         "valid release notes URL");
     expect(!is_allowed_release_notes_url("file:///C:/Windows/System32/calc.exe"), "reject local release notes URL");
+
+    expect(!is_valid_release_tag("v9223372036854775808.2.stable"), "reject release number overflow");
+    expect(!is_valid_release_tag("v2.5.rc9223372036854775808"), "reject status number overflow");
+    expect(!is_safe_plugin_archive_path((std::string("addons/orchestrator/a") + std::string("\0b", 2))), "reject embedded NUL");
+    expect(!is_safe_plugin_archive_path("addons/orchestrator/caf\xc3\xa9.txt"), "reject Unicode path");
+
+    expect(update_recovery(false, true, true, true) == UpdateRecovery::NONE, "orphan backup is preserved");
+    expect(update_recovery(true, false, true, false) == UpdateRecovery::RESTORE_BACKUP, "recover missing target");
+    expect(update_recovery(true, true, true, true) == UpdateRecovery::CONFIRM_STARTED, "confirm new version startup");
+    expect(update_recovery(true, true, true, false) == UpdateRecovery::KEEP_PENDING, "old version cannot confirm new addon");
+    expect(update_recovery(true, true, false, false) == UpdateRecovery::DISCARD_STAGING, "unstarted transaction needs cleanup");
+    expect(update_recovery(true, false, false, false) == UpdateRecovery::KEEP_PENDING, "missing recovery data remains pending");
+
+    // One ordinary stored ZIP, built here so malformed lengths never allocate large fixtures.
+    std::vector<uint8_t> zip;
+    const auto put = [&zip](uint32_t value, size_t size) {
+        for (size_t byte = 0; byte < size; ++byte) { zip.push_back(static_cast<uint8_t>(value >> (byte * 8))); }
+    };
+    const std::string name = "addons/orchestrator/orchestrator.gdextension";
+    const std::string payload = "descriptor";
+    const uint32_t crc = archive_crc({ reinterpret_cast<const uint8_t*>(payload.data()), payload.size() });
+    put(0x04034b50, 4); put(20, 2); put(0, 2); put(0, 2); put(0, 4); put(crc, 4);
+    put(static_cast<uint32_t>(payload.size()), 4); put(static_cast<uint32_t>(payload.size()), 4);
+    put(static_cast<uint32_t>(name.size()), 2); put(0, 2);
+    zip.insert(zip.end(), name.begin(), name.end());
+    zip.insert(zip.end(), payload.begin(), payload.end());
+    const uint32_t central = static_cast<uint32_t>(zip.size());
+    put(0x02014b50, 4); put(20, 2); put(20, 2); put(0, 2); put(0, 2); put(0, 4); put(crc, 4);
+    put(static_cast<uint32_t>(payload.size()), 4); put(static_cast<uint32_t>(payload.size()), 4);
+    put(static_cast<uint32_t>(name.size()), 2); put(0, 2); put(0, 2); put(0, 2); put(0, 2); put(0, 4); put(0, 4);
+    zip.insert(zip.end(), name.begin(), name.end());
+    const uint32_t central_size = static_cast<uint32_t>(zip.size()) - central;
+    put(0x06054b50, 4); put(0, 2); put(0, 2); put(1, 2); put(1, 2); put(central_size, 4); put(central, 4); put(0, 2);
+    std::vector<ArchiveEntry> entries;
+    expect(inspect_archive(zip, entries) && entries.size() == 1, "accept bounded stored ZIP");
+    expect(verify_archive_entry(entries[0], { zip.data() + entries[0].offset, entries[0].size }), "verify member CRC and length");
+    expect(!verify_archive_entry(entries[0], {}), "read error cannot become empty file");
+    auto changed = zip;
+    changed[entries[0].offset] ^= 1;
+    expect(!verify_archive_entry(entries[0], { changed.data() + entries[0].offset, entries[0].size }), "reject CRC mismatch");
+    changed = zip;
+    changed[central + 24 + 3] = 0x60;
+    expect(!inspect_archive(changed, entries), "reject oversized metadata before allocation");
+    changed = zip;
+    changed[central + 38 + 3] = 0xa0;
+    expect(!inspect_archive(changed, entries), "reject Unix symlink member");
+    changed = zip;
+    changed[central + 8] = 1;
+    expect(!inspect_archive(changed, entries), "reject encrypted ZIP");
+    changed = zip;
+    changed.resize(changed.size() - 1);
+    expect(!inspect_archive(changed, entries), "reject truncated ZIP");
+    ArchiveEntry empty{ "addons/orchestrator/empty", 0, 0, 0, 0, 0 };
+    expect(verify_archive_entry(empty, {}), "accept explicitly stored valid empty member");
+
+    const auto verified_snapshot = zip;
+    zip[30 + name.size()] ^= 1;
+    expect(inspect_archive(verified_snapshot, entries)
+        && verify_archive_entry(entries[0], { verified_snapshot.data() + entries[0].offset, entries[0].size }),
+        "extract the verified snapshot despite replacement of the download buffer");
+    const auto test_directory = std::filesystem::temp_directory_path() / "redotchestrator-security-test";
+    std::error_code filesystem_error;
+    std::filesystem::create_directory(test_directory, filesystem_error);
+    expect(!filesystem_error, "create native filesystem test directory");
+    const auto output = test_directory / "exclusive.txt";
+    const std::array<uint8_t, 1> marker = { 42 };
+    expect(write_update_file(output, marker), "create staged file exclusively");
+    expect(!write_update_file(output, marker), "never reopen an existing staged file");
+#ifdef _WIN32
+    {
+        UpdateDirectoryLock lock(test_directory);
+        expect(lock.valid(), "pin staging root");
+        const auto replacement = test_directory.parent_path() / "redotchestrator-security-test-pin-destination";
+        expect(!std::filesystem::exists(replacement), "pin test destination starts absent");
+        std::filesystem::rename(test_directory, replacement, filesystem_error);
+        expect(bool(filesystem_error), "pinned root cannot be substituted during extraction");
+        if (!filesystem_error) {
+            std::filesystem::rename(replacement, test_directory, filesystem_error);
+        }
+    }
+#endif
+    expect(remove_update_tree(test_directory), "clean native filesystem test directory");
 
     if (failures == 0) {
         std::cout << "redotchestrator updater security tests passed\n";
