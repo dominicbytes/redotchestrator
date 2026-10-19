@@ -43,6 +43,8 @@ String OrchestrationBinaryParser::_read_string() {
     uint32_t id = _file->get_32();
     if (id & 0x80000000) {
         uint32_t size = id & 0x7FFFFFFF;
+        ERR_FAIL_COND_V_MSG(size > _file->get_length() - _file->get_position(), {},
+            "String length exceeds the remaining file size, file is corrupt.");
 
         if (size > _string_buffer.size()) {
             _string_buffer.resize(size);
@@ -51,11 +53,18 @@ String OrchestrationBinaryParser::_read_string() {
             return {};
         }
 
-        _file->get_buffer(reinterpret_cast<uint8_t*>(_string_buffer[0]), size);
-        return String::utf8(&_string_buffer[0]);
+        _file->get_buffer(reinterpret_cast<uint8_t*>(_string_buffer.ptrw()), size);
+        return String::utf8(_string_buffer.ptr(), size);
     }
 
+    ERR_FAIL_UNSIGNED_INDEX_V(id, static_cast<uint32_t>(_string_map.size()), {});
     return _string_map[id];
+}
+
+bool OrchestrationBinaryParser::_is_count_valid(uint64_t p_count, uint64_t p_min_element_size) const {
+    // Each element occupies at least the given number of bytes, so a larger count can only come from a corrupt file.
+    const uint64_t remaining = _file->get_length() - _file->get_position();
+    return p_count <= remaining / p_min_element_size;
 }
 
 Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
@@ -367,6 +376,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         case OrchestrationBinaryFormat::VARIANT_DICTIONARY: {
             uint32_t size = _file->get_32();
             size &= 0x7FFFFFFF;  // last bit means shared
+            ERR_FAIL_COND_V(!_is_count_valid(size, 8), ERR_FILE_CORRUPT);
 
             Dictionary dict;
             for (uint32_t i = 0; i < size; i++) {
@@ -386,6 +396,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         case OrchestrationBinaryFormat::VARIANT_ARRAY: {
             uint32_t size = _file->get_32();
             size &= 0x7FFFFFFF;  // last bit means shared
+            ERR_FAIL_COND_V(!_is_count_valid(size, 4), ERR_FILE_CORRUPT);
 
             Array a;
             a.resize(size);
@@ -400,6 +411,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_BYTE_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 1), ERR_FILE_CORRUPT);
 
             PackedByteArray array;
             array.resize(size);
@@ -420,6 +432,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_INT32_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 4), ERR_FILE_CORRUPT);
 
             PackedInt32Array array;
             array.resize(size);
@@ -433,6 +446,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_INT64_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 8), ERR_FILE_CORRUPT);
 
             PackedInt64Array array;
             array.resize(size);
@@ -446,6 +460,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_FLOAT32_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 4), ERR_FILE_CORRUPT);
 
             PackedFloat32Array array;
             array.resize(size);
@@ -459,6 +474,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_FLOAT64_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 8), ERR_FILE_CORRUPT);
 
             PackedFloat64Array array;
             array.resize(size);
@@ -472,6 +488,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_STRING_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 4), ERR_FILE_CORRUPT);
 
             PackedStringArray array;
             array.resize(size);
@@ -485,6 +502,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_VECTOR2_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 16), ERR_FILE_CORRUPT);
 
             PackedVector2Array array;
             array.resize(size);
@@ -499,6 +517,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_VECTOR3_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 24), ERR_FILE_CORRUPT);
 
             PackedVector3Array array;
             array.resize(size);
@@ -514,6 +533,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_COLOR_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 16), ERR_FILE_CORRUPT);
 
             PackedColorArray array;
             array.resize(size);
@@ -530,6 +550,7 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
         }
         case OrchestrationBinaryFormat::VARIANT_PACKED_VECTOR4_ARRAY: {
             const uint32_t size = _file->get_32();
+            ERR_FAIL_COND_V(!_is_count_valid(size, 32), ERR_FILE_CORRUPT);
 
             PackedVector4Array array;
             array.resize(size);
@@ -610,7 +631,10 @@ Error OrchestrationBinaryParser::_read_resource_metadata(bool p_keep_uuid_paths)
     ERR_FAIL_COND_V_MSG(_header_block_size == 0, ERR_FILE_CANT_READ, "Resource metadata requires first reading the file header");
     _file->seek(_header_block_size);
 
-    _string_map.resize(_file->get_32());
+    const uint32_t string_count = _file->get_32();
+    ERR_FAIL_COND_V(!_is_count_valid(string_count, 4), ERR_FILE_CORRUPT);
+
+    _string_map.resize(string_count);
     for (int64_t i = 0; i < _string_map.size(); i++) {
         _string_map.write[i] = _read_unicode_string();
     }

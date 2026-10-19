@@ -77,6 +77,7 @@ class OrchestrationBinaryParser : public OrchestrationParser {
 
     String _read_unicode_string();
     String _read_string();
+    bool _is_count_valid(uint64_t p_count, uint64_t p_min_element_size) const;
     Error _parse_variant(Variant& r_value);
 
     Error _read_header_block();

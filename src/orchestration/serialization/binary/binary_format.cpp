@@ -23,7 +23,7 @@ void OrchestrationBinaryFormat::save_unicode_string(const Ref<FileAccess>& p_fil
 
     size_t length = utf8.length() + 1;
     if (p_bit_on_length) {
-        length |= 0x8000000;
+        length |= 0x80000000;
     }
 
     p_file->store_32(length);
@@ -33,11 +33,19 @@ void OrchestrationBinaryFormat::save_unicode_string(const Ref<FileAccess>& p_fil
 String OrchestrationBinaryFormat::read_unicode_string(const Ref<FileAccess>& p_file) {
     ERR_FAIL_COND_V_MSG(p_file.is_null(), {}, "Cannot read unicode string when file reference is not valid.");
 
-    uint32_t size = p_file->get_32();
+    // A zero length is also what a truncated file yields at EOF.
+    const uint32_t size = p_file->get_32();
+    if (size == 0) {
+        return {};
+    }
+
+    ERR_FAIL_COND_V_MSG(size > p_file->get_length() - p_file->get_position(), {},
+        "String length exceeds the remaining file size, file is corrupt.");
 
     Vector<char> buffer;
     buffer.resize(size);
-    p_file->get_buffer((uint8_t*) &buffer[0], size);
+    ERR_FAIL_COND_V_MSG(p_file->get_buffer(reinterpret_cast<uint8_t*>(buffer.ptrw()), size) != size, {},
+        "Failed to read string, file is corrupt.");
 
-    return String::utf8(&buffer[0]);
+    return String::utf8(buffer.ptr(), size);
 }
