@@ -737,7 +737,8 @@ Error OrchestrationBinaryParser::_load() {
         }
 
         if (!path.contains("://") && path.is_relative_path()) {
-            path = ProjectSettings::get_singleton()->localize_path(path.get_base_dir().path_join(_external_resources[i].path));
+            // Relative to the file being loaded
+            path = ProjectSettings::get_singleton()->localize_path(_path.get_base_dir().path_join(path));
         }
 
         _external_resources.write[i].path = path;
