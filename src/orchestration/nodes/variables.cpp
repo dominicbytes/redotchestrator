@@ -217,7 +217,7 @@ void OScriptNodeVariableGet::set_validated(bool p_validated) {
                 is_valid->unlink_all();
             }
 
-            Ref<OScriptNodePin> is_not_valid = find_pin("is_not_valid", PD_Output);
+            Ref<OScriptNodePin> is_not_valid = find_pin("is_invalid", PD_Output);
             if (is_not_valid.is_valid()) {
                 is_not_valid->unlink_all();
             }

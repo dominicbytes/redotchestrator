@@ -375,15 +375,22 @@ void OScriptFunction::set_description(const String& p_description) {
 
 void OScriptFunction::remove_argument(int p_index) {
     if (_orchestration && is_user_defined()) {
-        // Unlink connections
+        ERR_FAIL_INDEX(p_index, _method.arguments.size());
+        const StringName argument_name = _method.arguments[p_index].name;
         for (const Ref<OScriptNode>& node : _orchestration->get_nodes()) {
             const Ref<OScriptNodeCallScriptFunction> call_func = node;
-            if (call_func.is_valid() && call_func->get_function() == this) {
-                const Ref<OScriptNodePin> argument_pin = node->find_pin(p_index + 1, PD_Input);
-                if (argument_pin.is_valid()) {
-                    argument_pin->unlink_all();
+            const Ref<OScriptNodeFunctionEntry> entry = node;
+            const bool is_call = call_func.is_valid() && call_func->get_function() == this;
+            const bool is_entry = entry.is_valid() && entry->get_function() == this;
+            if (is_call || is_entry) {
+                const EPinDirection direction = is_call ? PD_Input : PD_Output;
+                const Ref<OScriptNodePin> pin = node->find_pin(argument_name, direction);
+                if (pin.is_valid()) {
+                    const int index = pin->get_pin_index();
+                    pin->unlink_all();
+                    node->remove_pin(pin);
+                    _orchestration->adjust_connections(node.ptr(), index + 1, -1, direction);
                 }
-
             }
         }
 

@@ -40,6 +40,7 @@ public:
     String get_node_title_color_name() const override { return "constants_and_literals"; }
     String get_icon() const override;
     bool is_pure() const override { return true; }
+    bool rewire_old_pins_by_position() const override { return true; }
     //~ End OScriptNode Interface
 
     //~ Begin OScriptEditablePinNode Interface
