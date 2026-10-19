@@ -1,0 +1,25 @@
+[orchestration type="OScript" load_steps=5 format=4]
+[obj type="OScriptFunction" id="F"]
+guid = "11111111-1111-4111-8111-111111111111"
+method = {"name": &"probe", "args": [{"name": &"payload", "usage": 131078}, {"name": &"bad", "type": 2}]}
+user_defined = true
+id = 0
+[obj type="OScriptGraph" id="G"]
+graph_name = &"probe"
+flags = 22
+nodes = Array[int]([0,1])
+functions = Array[int]([0])
+[obj type="OScriptNodeFunctionEntry" id="E"]
+function_id = "11111111-1111-4111-8111-111111111111"
+id = 0
+pin_data = Array[Dictionary]([{"pin_name": &"ExecOut", "dir": 1, "flags": 4}, {"pin_name": &"payload", "dir": 1, "flags": 2, "usage": 131078}, {"pin_name": &"bad", "type": 2, "dir": 1, "flags": 2}])
+[obj type="OScriptNodeFunctionResult" id="R"]
+function_id = "11111111-1111-4111-8111-111111111111"
+id = 1
+pin_data = Array[Dictionary]([{"pin_name": &"ExecIn", "flags": 4}])
+[resource]
+base_type = &"Node"
+functions = Array[OScriptFunction]([SubResource("F")])
+connections = Array[int]([0,0,1,0])
+nodes = Array[OScriptNode]([SubResource("E"),SubResource("R")])
+graphs = Array[OScriptGraph]([SubResource("G")])

@@ -296,7 +296,7 @@ const OScriptInstanceInfo OScriptInstance::INSTANCE_INFO = [] {
 
 #if GODOT_VERSION >= 0x040500
 bool OScriptInstanceBase::_is_same_script_instance() const {
-    return _owner && gdextension_object_get_script_instance(_owner->_owner, OScriptLanguage::get_singleton()) == this;
+    return _owner && gdextension_object_get_script_instance(_owner->_owner, OScriptLanguage::get_singleton()->_owner) == this;
 }
 #endif
 
@@ -321,7 +321,7 @@ void OScriptInstanceBase::get_property_state(GDExtensionScriptInstancePropertySt
             GDExtensionStringNamePtr name = props[i].name;
             if (props[i].usage & PROPERTY_USAGE_STORAGE) {
                 Variant value;
-                bool is_valid = get(reinterpret_cast<StringName&>(name), value);
+                bool is_valid = get(*static_cast<const StringName*>(name), value);
                 if (is_valid) {
                     p_add_func(name, &value, p_user_data);
                 }

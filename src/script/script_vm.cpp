@@ -659,6 +659,9 @@ Variant OScriptCompiledFunction::call(OScriptInstance* p_instance, const Variant
                 r_error.error = GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;
                 r_error.argument = i;
                 r_error.expected = argument_types[i].builtin_type;
+                for (int j = 0; j < i; j++) {
+                    stack[j + FIXED_ADDRESSES_MAX].~Variant();
+                }
                 call_depth--;
                 return get_default_variant_for_data_type(return_type);
             }
@@ -682,6 +685,9 @@ Variant OScriptCompiledFunction::call(OScriptInstance* p_instance, const Variant
                         r_error.error = GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;
                         r_error.argument = i;
                         r_error.expected = argument_types[i].builtin_type;
+                        for (int j = 0; j < i; j++) {
+                            stack[j + FIXED_ADDRESSES_MAX].~Variant();
+                        }
                         call_depth--;
                         return get_default_variant_for_data_type(return_type);
                     }

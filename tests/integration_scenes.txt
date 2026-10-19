@@ -1,6 +1,7 @@
 errors/abs_without_argument.tscn
 errors/array_bad_index.tscn
 errors/assign_freed_instance.tscn
+errors/b_empty_function_graph.tscn
 errors/division_by_zero.tscn
 errors/modulo_by_zero.tscn
 errors/utility_function_wrong_arg.tscn
@@ -13,6 +14,8 @@ features/assign_member_with_operation.tscn
 features/await_on_void.tscn
 features/await_signal_with_parameters.tscn
 features/await_without_coroutine.tscn
+features/b_invalid_argument_cleanup.tscn
+features/b_unsupported_struct.tscn
 features/call_native_static_base_method_runtime.tscn
 features/call_native_static_method_validated.tscn
 features/call_script_method_init.tscn
