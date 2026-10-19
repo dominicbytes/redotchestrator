@@ -329,7 +329,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("distribution", type=Path, help="Directory containing addons/orchestrator")
     parser.add_argument("output", type=Path, help="Destination plugin ZIP")
-    parser.add_argument("--version", required=True, help="Release tag, for example v2.5.stable")
+    parser.add_argument("--version", required=True, help="Release tag, for example v2.5.200.stable")
     parser.add_argument("--redot-compatibility", required=True, help="Minimum compatible Redot release")
     parser.add_argument("--redot-compatibility-maximum", help="Inclusive tested Redot upper bound")
     parser.add_argument("--manifest", required=True, type=Path, help="Manifest JSON to update")

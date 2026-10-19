@@ -72,16 +72,16 @@ class PackageReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             distribution = self.make_distribution(root)
-            archive = root / "redotchestrator-v2.5.1.stable-plugin.zip"
+            archive = root / "redotchestrator-v2.5.200.stable-plugin.zip"
             manifest = root / "release_manifests.json"
             entry = PACKAGE_RELEASE.package_release(
-                distribution, archive, "v2.5.1.stable", "v26.2.0", manifest, "v26.3.0")
+                distribution, archive, "v2.5.200.stable", "v26.2.0", manifest, "v26.3.0")
             self.assertEqual("v26.3.0", entry["redot_compatibility_maximum"])
             self.assertEqual([entry], json.loads(manifest.read_text()))
             for maximum in ("", "26.3", "v26.1.0", "v27.0.0"):
                 with self.subTest(maximum=maximum), self.assertRaises(ValueError):
                     PACKAGE_RELEASE.package_release(
-                        distribution, archive, "v2.5.1.stable", "v26.2.0", manifest, maximum)
+                        distribution, archive, "v2.5.200.stable", "v26.2.0", manifest, maximum)
 
     def test_missing_descriptor_library_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -231,6 +231,10 @@ class PackageReleaseTests(unittest.TestCase):
                 encoding="utf-8",
             )
             self.assertEqual("v2.5.stable", PACKAGE_RELEASE.expected_release_tag(version_file))
+
+    def test_repository_version_uses_the_downstream_release_line(self) -> None:
+        version_file = Path(__file__).resolve().parents[1] / "VERSION"
+        self.assertEqual("v2.5.200.stable", PACKAGE_RELEASE.expected_release_tag(version_file))
 
     def test_invalid_redot_compatibility_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
