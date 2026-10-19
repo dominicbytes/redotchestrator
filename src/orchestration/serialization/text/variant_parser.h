@@ -42,6 +42,7 @@ public:
 
     public:
         char32_t saved = 0;
+        uint32_t depth = 0; // Current value nesting, bounded by parse_value
 
         char32_t get_char();
         bool is_eof() const;

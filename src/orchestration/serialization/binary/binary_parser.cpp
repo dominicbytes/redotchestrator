@@ -68,6 +68,16 @@ bool OrchestrationBinaryParser::_is_count_valid(uint64_t p_count, uint64_t p_min
 }
 
 Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
+    // Containers recurse, so bound the depth to fail on crafted files rather than overflow the stack.
+    ERR_FAIL_COND_V_MSG(_variant_depth >= OrchestrationFormat::MAX_PARSE_DEPTH, ERR_FILE_CORRUPT,
+        "Variant nesting is too deep, file is corrupt.");
+
+    struct DepthGuard {
+        uint32_t& depth;
+        explicit DepthGuard(uint32_t& p_depth) : depth(p_depth) { depth++; }
+        ~DepthGuard() { depth--; }
+    } depth_guard(_variant_depth);
+
     uint32_t variant_type = _file->get_32();
 
     switch (variant_type) {

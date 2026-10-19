@@ -29,6 +29,7 @@
 #include "common/string_utils.h"
 #include "common/version.h"
 #include "core/godot/object/script_language.h"
+#include "orchestration/serialization/format.h"
 
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/script.hpp>
@@ -712,6 +713,20 @@ Error OScriptVariantParser::_parse_construct(Stream* p_stream, Vector<T>& r_cons
 
 Error OScriptVariantParser::parse_value(Stream* p_stream, Token& p_token, int& p_line, Variant& r_value, String& r_err_string, ResourceParser* p_res_parser)
 {
+    // Containers recurse through here, so bound the depth to fail on crafted files rather than overflow the stack.
+    if (p_stream->depth >= OrchestrationFormat::MAX_PARSE_DEPTH)
+    {
+        r_err_string = "Value nesting is too deep";
+        return ERR_PARSE_ERROR;
+    }
+
+    struct DepthGuard
+    {
+        uint32_t& depth;
+        explicit DepthGuard(uint32_t& p_depth) : depth(p_depth) { depth++; }
+        ~DepthGuard() { depth--; }
+    } depth_guard(p_stream->depth);
+
     if (p_token.type == TK_CURLY_BRACKET_OPEN)
     {
         Dictionary dict;

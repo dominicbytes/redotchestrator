@@ -56,6 +56,7 @@ class OrchestrationBinaryParser : public OrchestrationParser {
     uint32_t _version = 1;
     uint32_t _godot_version = 0;
     uint32_t _flags = 0;
+    uint32_t _variant_depth = 0;
 
     bool _translation_remapped = false;
 
