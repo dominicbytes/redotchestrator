@@ -228,7 +228,10 @@ class PackageReleaseTests(unittest.TestCase):
             distribution = self.make_distribution(Path(temporary))
             addon = distribution / "addons/orchestrator"
             aliases = [addon / "bin/plugin.so", addon / "bin/PLUGIN.SO"]
-            with patch.object(Path, "rglob", return_value=iter(aliases)):
+            # On case-sensitive hosts the alias must exist as a file of its own.
+            if not aliases[1].exists():
+                aliases[1].write_bytes(aliases[0].read_bytes())
+            with patch.object(Path, "rglob", side_effect=lambda *args, **kwargs: iter(aliases)):
                 with self.assertRaisesRegex(ValueError, "case-colliding"):
                     PACKAGE_RELEASE.validate_distribution(distribution)
 
