@@ -2,4 +2,4 @@ OSCRIPT_TEST_FAILURE
 ERROR: Trying to assign invalid previously freed instance.
    at: _ready (res://scenes/errors/assign_freed_instance.torch:6)
    OScript backtrace (most recent call first):
-       [0] _ready (res://scenes/errors/assign_freed_instance.torch:1)
+       [0] _ready (res://scenes/errors/assign_freed_instance.torch:6)

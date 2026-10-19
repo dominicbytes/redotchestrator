@@ -2,12 +2,12 @@ OSCRIPT_TEST_FAILURE
 ERROR: Index p_index = 4 is out of bounds (p_instance->size() = 3).
    at: func_Array_set (core/variant/variant_call.cpp:681)
    OScript backtrace (most recent call first):
-       [0] _ready (res://scenes/errors/array_bad_index.torch:1)
+       [0] _ready (res://scenes/errors/array_bad_index.torch:9)
 ERROR: Index p_index = 4 is out of bounds (p_instance->size() = 3).
    at: func_Array_get (core/variant/variant_call.cpp:681)
    OScript backtrace (most recent call first):
-       [0] _ready (res://scenes/errors/array_bad_index.torch:1)
+       [0] _ready (res://scenes/errors/array_bad_index.torch:10)
 ERROR: Invalid access to property or key '4' on a base object of type 'Array'.
    at: _ready (res://scenes/errors/array_bad_index.torch:11)
    OScript backtrace (most recent call first):
-       [0] _ready (res://scenes/errors/array_bad_index.torch:1)
+       [0] _ready (res://scenes/errors/array_bad_index.torch:11)

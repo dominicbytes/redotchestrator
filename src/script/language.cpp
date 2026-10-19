@@ -467,7 +467,8 @@ void* OScriptLanguage::_debug_get_stack_level_instance(int32_t p_level) {
     }
 
     ERR_FAIL_INDEX_V(p_level, _call_stack_size, nullptr);
-    return _get_stack_level(p_level)->instance->_script_instance;
+    OScriptInstance* instance = _get_stack_level(p_level)->instance;
+    return instance ? instance->get_instance_info() : nullptr;
 }
 
 Dictionary OScriptLanguage::_debug_get_globals(int32_t p_max_subitems, int32_t p_max_depth) {
@@ -519,22 +520,23 @@ Dictionary OScriptLanguage::_debug_get_globals(int32_t p_max_subitems, int32_t p
 }
 
 String OScriptLanguage::_debug_parse_stack_level_expression(int32_t p_level, const String& p_expression, int32_t p_max_subitems, int32_t p_max_depth) {
-    List<String> names;
-    List<Variant> values;
+    if (_debug_parse_err_line >= 0) {
+        return {};
+    }
+
+    ERR_FAIL_INDEX_V(p_level, _call_stack_size, {});
 
     const Dictionary data = _debug_get_stack_level_locals(p_level, p_max_subitems, p_max_depth);
 
     Ref<Expression> expression;
     expression.instantiate();
-    if (expression->parse(p_expression, data["names"]) == OK) {
-        OScriptInstanceBase* inst = static_cast<OScriptInstanceBase*>(_debug_get_stack_level_instance(p_level));
-        if (inst) {
-            Variant ret = expression->execute(data["values"], inst->get_owner());
+    if (expression->parse(p_expression, data["locals"]) == OK) {
+        OScriptInstance* inst = _get_stack_level(p_level)->instance;
+        Variant ret = expression->execute(data["values"], inst ? inst->get_owner() : nullptr);
 
-            String value;
-            OScriptVariantWriter::write_to_string(ret, value);
-            return value;
-        }
+        String value;
+        OScriptVariantWriter::write_to_string(ret, value);
+        return value;
     }
 
     return {};
@@ -547,7 +549,7 @@ TypedArray<Dictionary> OScriptLanguage::_debug_get_current_stack_info() {
         Dictionary data;
         data["file"] = cl->function->get_script()->get_script_path();
         data["func"] = cl->function->get_name();
-        data["line"] = cl->node;
+        data["line"] = *cl->node;
         array.append(data);
         cl = cl->prev;
     }
