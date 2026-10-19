@@ -272,13 +272,12 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
             break;
         }
         case OrchestrationBinaryFormat::VARIANT_NODE_PATH: {
-            [[maybe_unused]] bool absolute;
             Array names;
             Array subnames;
 
             int name_count = _file->get_16();
             int subname_count = _file->get_16();
-            absolute = subname_count & 0x8000;
+            const bool absolute = subname_count & 0x8000;
             subname_count &= 0x7FFF;
 
             for (int i = 0; i < name_count; i++) {
@@ -289,11 +288,13 @@ Error OrchestrationBinaryParser::_parse_variant(Variant& r_value) { // NOLINT
                 subnames.push_back(_read_string());
             }
 
+            String path = absolute ? "/" : "";
+            path += StringUtils::join("/", names);
             if (subname_count > 0) {
-                ERR_FAIL_V_MSG(ERR_PARSE_ERROR, "Node paths cannot be read currently.");
+                path += ":" + StringUtils::join(":", subnames);
             }
 
-            r_value = NodePath(StringUtils::join("/", names));
+            r_value = NodePath(path);
             break;
         }
         case OrchestrationBinaryFormat::VARIANT_RID: {
