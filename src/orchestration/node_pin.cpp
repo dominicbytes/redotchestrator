@@ -414,6 +414,11 @@ bool OScriptNodePin::can_accept(const Ref<OScriptNodePin>& p_pin) const {
         return false;
     }
 
+    const OScriptNodeReroute* target_reroute = cast_to<OScriptNodeReroute>(get_owning_node());
+    if (target_reroute && target_reroute->would_create_cycle(p_pin->get_owning_node())) {
+        return false;
+    }
+
     // ANY reroutes accept all pin types and they adopt the type from the first connection
     OScriptNode* owner = get_owning_node();
     if (owner && owner->is_reroute()) {
@@ -583,6 +588,11 @@ void OScriptNodePin::link(const Ref<OScriptNodePin>& p_pin) {
 
         target = p_pin->get_owning_node();
         target_pin = p_pin;
+    }
+
+    const OScriptNodeReroute* target_reroute = cast_to<OScriptNodeReroute>(target);
+    if (target_reroute && target_reroute->would_create_cycle(source)) {
+        return;
     }
 
     // Data input pins can only have a single incoming connection
@@ -873,21 +883,24 @@ void OScriptNodePin::_bind_methods() {
 }
 
 Ref<OScriptNodePin> OScriptNodePin::_resolve_reroute(const Ref<OScriptNodePin>& p_pin) {
-    if (!p_pin.is_valid()) {
-        return {};
-    }
+    Ref<OScriptNodePin> current = p_pin;
+    HashSet<OScriptNode*> visited;
+    while (current.is_valid()) {
+        OScriptNode* owner = current->get_owning_node();
+        if (!owner || !owner->is_reroute()) {
+            return current;
+        }
+        if (visited.has(owner)) {
+            return {};
+        }
+        visited.insert(owner);
 
-    OScriptNode* owner = p_pin->get_owning_node();
-    if (!owner || !owner->is_reroute()) {
-        return p_pin;
+        const EPinDirection other = current->is_input() ? PD_Output : PD_Input;
+        const Ref<OScriptNodePin> other_pin = owner->find_pin(other == PD_Input ? "input" : "output", other);
+        if (other_pin.is_null() || !other_pin->has_any_connections()) {
+            return {};
+        }
+        current = other_pin->get_connections()[0];
     }
-
-    // Follow through the reroute: input pin looks at the other side (output) and vice versa
-    EPinDirection other = p_pin->is_input() ? PD_Output : PD_Input;
-    Ref<OScriptNodePin> other_pin = owner->find_pin(other == PD_Input ? "input" : "output", other);
-    if (!other_pin.is_valid() || !other_pin->has_any_connections()) {
-        return {};
-    }
-
-    return _resolve_reroute(other_pin->get_connections()[0]);
+    return {};
 }

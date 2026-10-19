@@ -18,6 +18,8 @@
 
 #include "orchestration/node.h"
 
+#include <godot_cpp/templates/hash_set.hpp>
+
 /// Reroute nodes direct data or execution connections through a visual waypoint.
 ///
 /// Reroute nodes begin as "ANY", allowing the user to connect either an execution or data wire.
@@ -49,11 +51,11 @@ private:
     // Rebuild pins for the given type.
     void _apply_type(ERerouteType p_new_type);
     // Walk downstream reroutes via connections and resolve each one's type from its own sink.
-    void _cascade_resolve_from_target();
+    void _cascade_resolve_from_target(HashSet<int>* p_visited = nullptr);
     // Walk output connections and push the current type to any downstream reroutes.
-    void _cascade_type_downstream();
+    void _cascade_type_downstream(HashSet<int>* p_visited = nullptr);
     // Walk the output chain and return the first non-reroute pin, or invalid if none.
-    Ref<OScriptNodePin> _resolve_target_pin() const;
+    Ref<OScriptNodePin> _resolve_target_pin(HashSet<int>* p_visited = nullptr) const;
 
 protected:
     static void _bind_methods();
@@ -71,6 +73,8 @@ public:
     bool can_user_delete_node() const override { return true; }
     bool can_inspect_node_properties() const override { return false; }
     //~ End OScriptNode Interface
+
+    bool would_create_cycle(const OScriptNode* p_source) const;
 
     ERerouteType get_reroute_type() const { return _reroute_type; }
 

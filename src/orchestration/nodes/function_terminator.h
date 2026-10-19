@@ -56,4 +56,5 @@ public:
 
     /// Get the function reference
     Ref<OScriptFunction> get_function() const { return _function; }
+    void set_function(const Ref<OScriptFunction>& p_function);
 };
