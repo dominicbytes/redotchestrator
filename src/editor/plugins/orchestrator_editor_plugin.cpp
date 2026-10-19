@@ -452,6 +452,11 @@ void OrchestratorPlugin::request_editor_restart() {
 }
 
 Ref<Texture2D> OrchestratorPlugin::get_plugin_icon_hires() const {
+    // The editor requests this before imported textures exist on a clean install.
+    Ref<FileAccess> file = FileAccess::open("res://addons/orchestrator/icons/Redotchestrator_Logo.svg", FileAccess::READ);
+    if (file.is_valid()) {
+        return DPITexture::create_from_string(file->get_as_text(), EDSCALE);
+    }
     return ResourceLoader::get_singleton()->load("res://addons/orchestrator/icons/Redotchestrator_Logo.svg");
 }
 

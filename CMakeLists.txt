@@ -116,8 +116,16 @@ IF (compiler_is_msvc)
     SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 ENDIF ()
 
+# Remove checkout locations from __FILE__ strings in both the plugin and bindings.
+IF (MSVC)
+    ADD_COMPILE_OPTIONS("/d1trimfile:${CMAKE_CURRENT_SOURCE_DIR}/")
+ELSEIF (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    ADD_COMPILE_OPTIONS("-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=")
+ENDIF ()
+
 # Configure godot-cpp - a statically linked library to this project.
 INCLUDE(godot-dev-configuration)
+INCLUDE(redot-forward-compat)
 
 # Library sources
 FILE(GLOB_RECURSE gdext_sources
