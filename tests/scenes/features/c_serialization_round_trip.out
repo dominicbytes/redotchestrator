@@ -1,0 +1,29 @@
+OSCRIPT_TEST_PASS
+text loaded: true
+binary saved: 0
+binary loaded: true
+text saved: 0
+metadata/absolute = NodePath("/root/Main")
+metadata/subnames = NodePath("Sprite2D:position:x")
+metadata/absolute_subnames = NodePath("/root/Main/Player:frame")
+metadata/property_only = NodePath(":modulate:a")
+metadata/vectors = PackedVector4Array(1, 2, 3, 4, 5, 6, 7, 8)
+metadata/empty_string = ""
+metadata/empty_name = &""
+metadata/strings = PackedStringArray("", "x", "")
+metadata/mixed = ["", &"", NodePath("")]
+round trip matches: true
+rt.torch resaved: 0
+rt.torch uid stable: true
+rt.os resaved: 0
+rt.os uid stable: true
+set_uid: 0
+set_uid header kept format: true
+set_uid left temp file: false
+dependency saved: 0
+relative saved: 0
+relative stored: ["./dependency.tres"]
+relative loaded: true
+relative resaved: 0
+relative resolved: true
+ext_resource tag on one line: true
