@@ -132,10 +132,15 @@ Error OrchestrationTextSerializer::set_uid(const String& p_path, int64_t p_uid) 
         return ERR_FILE_UNRECOGNIZED;
     }
 
-    OrchestrationTextParser parser;
-
     String local_path = ProjectSettings::get_singleton()->localize_path(p_path);
-    Error err = parser.set_uid(local_path, p_uid);
+
+    Error err;
+    {
+        // The parser keeps the source file open, release it before replacing the file.
+        OrchestrationTextParser parser;
+        err = parser.set_uid(local_path, p_uid);
+    }
+
     if (err == OK) {
         Ref<DirAccess> dir = DirAccess::open("res://");
         dir->remove(local_path);
