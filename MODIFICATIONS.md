@@ -27,7 +27,9 @@ Material downstream changes include:
   artwork and recording all redistributed visual assets in `ASSET_LICENSES.md`;
   and
 - making CI, integration tests, artifact assembly, and release manifests
-  Redot-specific and reproducible from immutable dependency inputs.
+  Redot-specific, with deterministic packaging of fixed inputs and deterministic
+  SHA-256 content identifiers in generated sources. These guarantees do not
+  establish reproducible compilation across toolchains.
 
 The 26.3 compatibility update retains the 26.2 bindings, adds a guarded
 engine-owned Variant cleanup path, corrects updater runtime-version selection,

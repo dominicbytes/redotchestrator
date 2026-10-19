@@ -14,6 +14,7 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
+import hashlib
 import os, sys, platform
 
 def make_doc_source(target, source):
@@ -66,7 +67,7 @@ def make_doc_source(target, source):
     g.write("#include <godot_cpp/variant/packed_byte_array.hpp>\n")
     g.write("\n")
 
-    g.write('static const char *_doc_data_hash = "' + str(hash(buf)) + '";\n')
+    g.write('static const char *_doc_data_hash = "' + hashlib.sha256(buf).hexdigest()[:16] + '";\n')
     g.write("static const int _doc_data_uncompressed_size = " + str(decomp_size) + ";\n")
     g.write("static const int _doc_data_compressed_size = " + str(len(buf)) + ";\n")
     g.write("static const unsigned char _doc_data_compressed[] = {\n")

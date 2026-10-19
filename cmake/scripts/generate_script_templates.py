@@ -14,6 +14,7 @@
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
 ##
+import hashlib
 import base64, configparser, dataclasses, json, os, pathlib, sys, zlib;
 
 header = """\
@@ -85,7 +86,7 @@ def write_templates(templates_dir, out):
     out.write("\n")
     out.write("/* THIS FILE IS GENERATED DO NOT EDIT */\n")
     out.write("\n")
-    out.write(f"static const char* _template_data_hash = \"{hash(json_data)}\";\n")
+    out.write(f"static const char* _template_data_hash = \"{hashlib.sha256(json_data).hexdigest()[:16]}\";\n")
     out.write(f"static constexpr int _template_data_uncompressed_size = {json_decomp_size};\n")
     out.write(f"static constexpr int _template_data_compressed_size = {len(json_data)};\n")
     out.write(f"static const unsigned char _template_data_compressed[] = {{\n")
