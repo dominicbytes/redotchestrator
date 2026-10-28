@@ -18,7 +18,7 @@ the combined plugin and demo artifacts were assembled.
 |---|---|
 | Upstream baseline | `v2.5.stable` / `775cc4549657199b385f0a16e4c5523aba8b5500` |
 | Redot baseline | `redot-26.2-stable` / `4f5b14abade2239104847d03d8f9056e4467cfcd` |
-| redot-cpp baseline | `598ec78e86b2c240a023f6de13daba70f7de8610` |
+| redot-cpp baseline | `9e7161bd7a3572a36ffa93109e73169861e9f834` |
 | GDExtension compatibility minimum | `4.5.2` |
 | Windows integration suite | 42 passed, 0 failed, 0 crashed, 0 errored |
 | Native updater-security suite | Passed |
@@ -76,7 +76,9 @@ Do not substitute binaries from the upstream Godot release. They target Godot
 
 ## Build from source
 
-Clone with submodules, then use the preset for the intended target. CMake 3.23+
+Build only with the owner fork `dominicbytes/redot-cpp` at
+`9e7161bd7a3572a36ffa93109e73169861e9f834` (the locked submodule includes the
+Array initializer-list constructor fix). Clone with submodules, then use the preset for the intended target. CMake 3.23+
 and a C++20 compiler are required.
 
 ```powershell
