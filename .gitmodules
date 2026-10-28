@@ -3,4 +3,4 @@
 	url = https://github.com/Redot-Engine/redot-engine.git
 [submodule "godot-cpp"]
 	path = extern/godot-cpp
-	url = https://github.com/Redot-Engine/redot-cpp.git
+	url = https://github.com/dominicbytes/redot-cpp.git

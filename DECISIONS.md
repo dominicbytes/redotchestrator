@@ -131,7 +131,7 @@
 
 - Date: 2026-10-19.
 - Status: implemented; official Windows editor shutdown remains an engine gate.
-- Decision: retain redot-cpp `598ec78e`, its 4.5.2 API and existing script-instance
+- Decision: retain redot-cpp `9e7161bd`, its 4.5.2 API and existing script-instance
   structures. Patch only the build-tree Variant cleanup table lookup to delegate
   newer, unknown types to the engine destructor. Keep both GDExtension API bounds
   at 4.5.2. Use an explicit Redot manifest range from 26.2.0 through 26.3.0 and

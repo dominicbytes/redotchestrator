@@ -22,13 +22,14 @@ the product baseline; it was used only to compare older 4.5-compatible code.
 |---|---|
 | Redot release | `redot-26.2-stable` |
 | Redot engine commit/gitlink | `4f5b14abade2239104847d03d8f9056e4467cfcd` |
-| redot-cpp commit/gitlink | `598ec78e86b2c240a023f6de13daba70f7de8610` |
+| redot-cpp commit/gitlink | `9e7161bd7a3572a36ffa93109e73169861e9f834` |
 | Runtime version tuple | `26.2.0 stable official` |
 | GDExtension compatibility minimum | `4.5.2` |
 | redot-cpp `extension_api.json` SHA-256 | `453a0cc128bb58333a001f7f43573a5961d973fb7b151af43139869f22d5915c` |
 | redot-cpp `gdextension_interface.h` SHA-256 | `4cd695e86b92e2bf4e60bbe19ce137faf41205da1cf94f29e069afec0f7bf320` |
 
-`.gitmodules` points both submodules to the official Redot-Engine organization;
+`.gitmodules` points the binding to `https://github.com/dominicbytes/redot-cpp`
+and the optional engine reference to the official Redot-Engine organization;
 the superproject gitlinks above are the authority. The engine checkout is an
 optional source/reference input; normal GDExtension builds use redot-cpp.
 
@@ -92,9 +93,9 @@ development artifacts.
   `85e5203945af15755dd2f66cb6fdf7545fd88c0b`.
 - Official Windows console version: `26.3.stable.official.85e520394`.
 - Compatibility API header on both 26.2 and 26.3: Godot `4.5.2`, single precision.
-- The binding gitlink remains `598ec78e86b2c240a023f6de13daba70f7de8610`.
-  At verification, official redot-cpp `master`, `26.2`, and
-  `redot-26.2-stable` all resolve there; no 26.3 tag or newer default commit exists.
+- The binding gitlink remains `9e7161bd7a3572a36ffa93109e73169861e9f834`.
+  The owner fork fixes the Array initializer-list constructor without changing
+  the 26.2 API or interface header.
 - `cmake/redot-forward-compat.cmake` compiles a build-tree copy of the pinned
   Variant implementation with a guarded cleanup table lookup for newer types.
   It does not alter the dependency checkout or regenerate the API.

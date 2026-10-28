@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unreleased
+
+- Pin the owner redot-cpp fork with the Array initializer-list constructor fix.
+
 ## [2.5.stable](https://github.com/CraterCrash/godot-orchestrator/releases/tag/v2.5.stable) - 2026-07-03
 
 - [836702d3](http://github.com/CraterCrash/godot-orchestrator/commit/836702d3328503c06caea801937680def2e835b4) - GH-1694 Use main thread script loading on main thread
