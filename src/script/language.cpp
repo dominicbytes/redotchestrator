@@ -720,12 +720,10 @@ void OScriptLanguage::_reload_scripts(const Array& p_scripts, bool p_soft_reload
 }
 
 void OScriptLanguage::_reload_tool_script(const Ref<Script>& p_script, bool p_soft_reload) {
-    #if GODOT_VERSION >= 0x040500
-    Array scripts = { p_script };
-    #else
+    // The pinned binding's Array initializer-list constructor does not construct the array before
+    // resizing it, which crashes every reload-on-save; build the array explicitly instead.
     Array scripts;
     scripts.push_back(p_script);
-    #endif
     _reload_scripts(scripts, p_soft_reload);
 }
 

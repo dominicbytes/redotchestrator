@@ -37,6 +37,10 @@ adds an explicit tested manifest upper bound and a maintenance release identity,
 loads the editor logo directly from SVG before imported textures exist,
 and extends bounded integration checks and checksum-pinned CI to 26.3. Windows
 builds trim source locations from both the plugin and binding compilation units.
+Arrays that were built with the pinned binding's initializer-list constructor,
+which does not construct the array before resizing it, are now built explicitly;
+this removes an editor crash on every orchestration save (reload-on-save) and the
+same pattern in two VM iteration paths.
 
 Serialized-resource and API compatibility identifiers such as `OScript`,
 `.torch`, `.os`, the `orchestrator/` settings namespace, and
